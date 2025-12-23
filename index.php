@@ -33,18 +33,18 @@ header('Expires: 0');
 <?php
 $names = [
     "" => "",
-    "Honza" => "Honza",
-    "Jana" => "Jana",
-    "Jitka" => "Jitka",
-    "Kuba" => "Kuba",
-    "Martin" => "Martin",
-    "Martina" => "Martina",
-    "Míra" => "Míra",
-    "Pepík" => "Pepík",
-    "Tomáš" => "Tomáš",
+    "5" => "Honza",
+    "1" => "Jana",
+    "2" => "Jitka",
+    "11" => "Kuba",
+    "8" => "Martin",
+    "4" => "Martina",
+    "6" => "Míra",
+    "3" => "Pepík",
+    "7" => "Tomáš",
 ];
 
-$selectedName = $_GET['person'] ?? "";
+$selectedPersonId = $_GET['personId'] ?? "";
 $selectedDate = $_GET['date'] ?? "";
 $selectedOrder = $_GET['order'] ?? "";
 
@@ -52,11 +52,11 @@ if($selectedDate == "" || $selectedOrder == ""){
 ?>
 
 <form method="get" style="margin-bottom: 20px;">
-    <label for="person">Vyberte jméno pracovníka:</label>
-    <select name="person" id="person">
+    <label for="personId">Vyberte jméno pracovníka:</label>
+    <select name="personId" id="personId">
         <?php foreach ($names as $value => $label): ?>
             <option value="<?= htmlspecialchars($value) ?>"
-                <?= $value === $selectedName ? 'selected' : '' ?>>
+                <?= $value === $selectedPersonId ? 'selected' : '' ?>>
                 <?= htmlspecialchars($label) ?>
             </option>
         <?php endforeach; ?>
@@ -244,12 +244,12 @@ class MonthShiftsListRecord{
   
   
   public function getPersonNameTD(){
-    return "<td><a href=\"" . $this->getPersonNameURL() . "\">" . $this->personName . "</td>"; 
+    return "<td><a href=\"" . $this->getPersonIdURL() . "\">" . $this->personName . "</td>"; 
   }
   
   
-  public function getPersonNameURL(){
-    return "index.php?person=" . $this->personName; 
+  public function getPersonIdURL(){
+    return "index.php?personId=" . $this->personId; 
   }
 
 
@@ -278,8 +278,8 @@ class MonthShiftsListRecord{
   }
   
   
-  public function isPerson($personName){
-    return $this->personName == $personName;
+  public function isPerson($personId){
+    return $this->personId == $personId;
   } 
  
 }
@@ -290,8 +290,8 @@ class MonthShiftsList{
   var $personName = "";
   
   
-  public function __construct($arrayMap, string $personName = "", $iaNeighbourhood = null){
-    $this->initFromArrayMap($arrayMap, $personName, $iaNeighbourhood);
+  public function __construct($arrayMap, string $personId = "", $iaNeighbourhood = null){
+    $this->initFromArrayMap($arrayMap, $personId, $iaNeighbourhood);
   }
   
 
@@ -327,16 +327,16 @@ class MonthShiftsList{
   }
   
 
-  public function initFromArrayMap($arrayMap, string $personName = "", $iaNeighbourhood = null){
+  public function initFromArrayMap($arrayMap, string $personId = "", $iaNeighbourhood = null){
     $this->init();
-    $this->personName = $personName;
+    $this->personName = ($personId == "") ? "" : $GLOBALS["names"][$personId];
     
     $i = 0;
     
     foreach($arrayMap as $record){
       if($i){
         $monthShiftsListRecord = new MonthShiftsListRecord($record);
-        if($iaNeighbourhood == null && ($personName == "" || $monthShiftsListRecord->isPerson($personName)) || ($iaNeighbourhood != null && $monthShiftsListRecord->isInNeighbourhood($iaNeighbourhood)))
+        if($iaNeighbourhood == null && ($personId == "" || $monthShiftsListRecord->isPerson($personId)) || ($iaNeighbourhood != null && $monthShiftsListRecord->isInNeighbourhood($iaNeighbourhood)))
           $this->records[$monthShiftsListRecord->getKey()] = $monthShiftsListRecord;
       }
       $i++;
@@ -344,9 +344,9 @@ class MonthShiftsList{
   }
 
   
-  public function limitToPersonByName($personName){
+  public function limitToPersonById($personId){
     foreach ($this->records as $record){
-      if(!$record->isPerson($personName))
+      if(!$record->isPerson($personId))
         unset($this->records[$record->getKey()]);
     }
   }
@@ -356,8 +356,8 @@ class MonthShiftsList{
 $monthShiftsListUrl = 'https://docs.google.com/spreadsheets/d/1ysbi-0T4SiMJxXUC3TZRgq263Q7QJO73RvLUdl3s1Lk/export?format=csv&gid=303224713';
 $arrayMap = array_map('str_getcsv', file($monthShiftsListUrl));
 
-if($selectedName !== "") {
-  $monthShiftsList = new MonthShiftsList($arrayMap, $selectedName, null);
+if($selectedPersonId !== "") {
+  $monthShiftsList = new MonthShiftsList($arrayMap, $selectedPersonId, null);
   
   echo $monthShiftsList->getTable4Person();
 }
