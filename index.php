@@ -28,6 +28,7 @@ header('Expires: 0');
   }
   </style>
 </head>
+<body>
 
 <?php
 $names = [
@@ -308,7 +309,7 @@ class MonthShiftsList{
 
 
   public function getTable4Person(){
-    $ret = "<p>" . $this->personName . "</p><table>";
+    $ret = "<p>" . $this->personName . ":</p><table>";
     
     foreach($this->records as $record){
       $ret .= $record->getTR4Person();
@@ -371,10 +372,12 @@ else{
   }
   
 }
-
-//print_r($monthShiftsList);
-
-
-
 ?>
+<hr/>
+<a href="/index.php" onclick="if (history.length > 1) history.back(); return false;">
+    ← zpět
+</a>
+&nbsp;&nbsp;
+<a href="/index.php">Domů</a>
+</body>
 </html>
