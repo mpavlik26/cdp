@@ -229,6 +229,11 @@ class MonthShiftsListRecord{
     $this->shiftMessage = $this->getShiftMessage();
   }
   
+
+  public function getTR4Neighbourhood(){
+    return "<tr><td>" . $this->shift->getCzechDateWithWeekday() . "</td><td>" . $this->shift->getCzechOrder() . "</td><td>" . $this->personName . "</td><td>" . $this->getShiftMessage() . "</td></tr>";
+  }
+
   
   public function getTR4Person(){
     return "<tr><td>" . $this->shift->getCzechDateWithWeekday() . "</td><td>" . $this->shift->getCzechOrder() . "</td><td>" . $this->getShiftMessage() . "</td>" . $this->shift->getNeighbourhoodTD() . "</tr>";
@@ -271,6 +276,19 @@ class MonthShiftsList{
     $this->initFromArrayMap($arrayMap, $personName, $iaNeighbourhood);
   }
   
+
+  public function getTable4Neighbourhood(){
+    $ret = "<table>";
+    
+    foreach($this->records as $record){
+      $ret .= $record->getTR4Neighbourhood();
+    }
+    
+    $ret .= "</table>";
+    
+    return $ret;
+  }
+
 
   public function getTable4Person(){
     $ret = "<p>" . $this->personName . "</p><table>";
@@ -322,6 +340,7 @@ $arrayMap = array_map('str_getcsv', file($monthShiftsListUrl));
 
 if($selectedName !== "") {
   $monthShiftsList = new MonthShiftsList($arrayMap, $selectedName, null);
+  
   echo $monthShiftsList->getTable4Person();
 }
 else{
@@ -331,7 +350,7 @@ else{
     $neighbourhood = $selectedShift->getNeighbourhood(true);
     $monthShiftsList = new MonthShiftsList($arrayMap, "", $neighbourhood);  
     
-    print_r($monthShiftsList);
+    echo $monthShiftsList->getTable4Neighbourhood();
   }
   
 }
