@@ -23,6 +23,37 @@
 </head>
 
 <?php
+$names = [
+    "" => "",
+    "Honza" => "Honza",
+    "Jana" => "Jana",
+    "Jitka" => "Jitka",
+    "Kuba" => "Kuba",
+    "Martin" => "Martin",
+    "Martina" => "Martina",
+    "Míra" => "Míra",
+    "Pepík" => "Pepík",
+    "Tomáš" => "Tomáš",
+];
+
+$selectedName = $_GET['person'] ?? "";
+?>
+
+<form method="get" style="margin-bottom: 20px;">
+    <label for="person">Vyberte jméno pracovníka:</label>
+    <select name="person" id="person">
+        <?php foreach ($names as $value => $label): ?>
+            <option value="<?= htmlspecialchars($value) ?>"
+                <?= $value === $selectedName ? 'selected' : '' ?>>
+                <?= htmlspecialchars($label) ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
+    <button type="submit">OK</button>
+</form>
+
+
+<?php
 
 ini_set('display_errors', '1');
 
@@ -196,11 +227,14 @@ $url = 'https://docs.google.com/spreadsheets/d/1ysbi-0T4SiMJxXUC3TZRgq263Q7QJO73
 $rows = array_map('str_getcsv', file($url));
 
 $monthShiftsList = new MonthShiftsList($rows);
-$monthShiftsList->limitToPersonByName("Kuba");
+
+if ($selectedName !== "") {
+  $monthShiftsList->limitToPersonByName($selectedName);
+  echo $monthShiftsList->getTable();
+}
 
 //print_r($monthShiftsList);
 
-echo $monthShiftsList->getTable();
 
 //print_r($rows);
 
