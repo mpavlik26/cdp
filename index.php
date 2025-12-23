@@ -211,7 +211,12 @@ class Shift{
   
   
   public function getNeighbourhoodURL(){
-    return "index.php?date=" . getDateString($this->_date) . "&order=" . $this->order; 
+    return "index.php?" . $this->getShiftURLParams();
+  }
+  
+  
+  public function getShiftURLParams(){
+    return "date=" . getDateString($this->_date) . "&order=" . $this->order; 
   }
   
   
@@ -258,13 +263,13 @@ class MonthShiftsListRecord{
   
   
   public function getPersonIdURL(){
-    return "index.php?personId=" . $this->personId; 
+    return "index.php?personId=" . $this->personId . "&" . $this->shift->getShiftURLParams(); 
   }
 
 
   public function getTR4Neighbourhood(){
     return
-      "<tr". (($this->shift->isCurrent()) ? " class=\"current\"" : "") . ">" .
+      $this->getTRTag() .
         "<td>" . $this->shift->getCzechDateWithWeekday() .
         "</td><td>" . $this->shift->getCzechOrder() .
         "</td>" . $this->getPersonNameTD() .
@@ -273,8 +278,13 @@ class MonthShiftsListRecord{
   }
 
   
+  public function getTRTag(){
+    return "<tr". (($this->shift->isCurrent()) ? " class=\"current\"" : "") . ">";
+  }
+  
+  
   public function getTR4Person(){
-    return "<tr><td>" . $this->shift->getCzechDateWithWeekday() . "</td><td>" . $this->shift->getCzechOrder() . "</td><td>" . $this->getShiftMessage() . "</td>" . $this->shift->getNeighbourhoodTD() . "</tr>";
+    return $this->getTRTag() . "<td>" . $this->shift->getCzechDateWithWeekday() . "</td><td>" . $this->shift->getCzechOrder() . "</td><td>" . $this->getShiftMessage() . "</td>" . $this->shift->getNeighbourhoodTD() . "</tr>";
   }
   
   
