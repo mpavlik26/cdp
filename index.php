@@ -126,7 +126,67 @@ function getTimeString($dateTime){
 }
 
 
+class Shift{
+  var $_date;
+  var $order;
+  
+  
+  public function __construct(DateTime $idDate, int $inOrder){
+    $this->_date = $idDate;
+    $this->order = $inOrder;
+  }
+
+
+  public function getCzechOrder(): string{
+    switch($this->order){
+      case 1: return "dlouhá";
+      case 2: return "krátká";
+      case 3: return "noční";
+    }
+  }
+  
+  
+  public function getCzechDateWithWeekday(): string{
+    return getCzechDateWithWeekdayString($this->_date);
+  }
+  
+  
+  public function getKey(){
+    return getDateString($this->_date) . "\\" . $this->order;
+  }
+  
+  
+  public function geNneighbourhood($ibIncludeItself){
+    $ret = Array();
+        
+    if($this->order == 1 || $this->order == 2){
+      array_push($ret, new Shift((clone $this->_date)->modify('-1 day'), 3));
+      
+      if($ibIncludeItself)
+        array_push($ret, $this);
+      
+      array_push($ret, new Shift(clone $this->_date, ($this->order == 1) ? 2 : 1));
+      array_push($ret, new Shift(clone $this->_date, 3));
+    }
+    else{
+      array_push($ret, new Shift(clone $this->_date, 1));
+      array_push($ret, new Shift(clone $this->_date, 2));
+      
+      if($ibIncludeItself)
+        array_push($ret, $this);
+      
+      array_push($ret, new Shift((clone $this->_date)->modify('+1 day'), 1));
+      array_push($ret, new Shift((clone $this->_date)->modify('+1 day'), 2));
+    }
+    
+    return ret;
+  }
+}
+
+
+
 class MonthShiftsListRecord{
+  var $shift;
   var $_date;
   var $in;
   var $order;
@@ -139,8 +199,7 @@ class MonthShiftsListRecord{
   
   
 	public function __construct($input_array){
-		$this->_date = DateTime::createFromFormat('Y-m-d H:i:s', ($input_array[0] . " 00:00:00"), new DateTimeZone('UTC'));
-    $this->order = $input_array[1];
+		$this->shift = new Shift(DateTime::createFromFormat('Y-m-d H:i:s', ($input_array[0] . " 00:00:00"), new DateTimeZone('UTC')), $input_array[1]);
     $this->personId = $input_array[4];
     $this->personName = $input_array[6];
     $this->in = new DateTime("1970-01-01 " . $input_array[9] . ":00", new DateTimeZone('UTC'));
@@ -151,22 +210,13 @@ class MonthShiftsListRecord{
   }
   
   
-  public function getCzechOrder(): string{
-    switch($this->order){
-      case 1: return "dlouhá";
-      case 2: return "krátká";
-      case 3: return "noční";
-    }
-  }
-  
-  
   public function getTR4Person(){
-    return "<tr><td>" . getCzechDateWithWeekdayString($this->_date) . "</td><td>" . $this->getCzechOrder() . "</td><td>" . $this->getShiftMessage() . "</td></tr>";
+    return "<tr><td>" . $this->shift->getCzechDateWithWeekday() . "</td><td>" . $this->shift->getCzechOrder() . "</td><td>" . $this->getShiftMessage() . "</td></tr>";
   }
   
   
   public function getKey(){
-    return getDateString($this->_date) . "\\" . $this->order;
+    return $this->shift->getKey();
   }
   
   
