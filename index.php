@@ -142,6 +142,8 @@ class Shift{
   }
 
 
+  
+
   public function getCzechOrder(): string{
     switch($this->order){
       case 1: return "dlouhá";
@@ -184,7 +186,7 @@ class Shift{
       array_push($ret, new Shift((clone $this->_date)->modify('+1 day'), 2));
     }
     
-    return ret;
+    return $ret;
   }
 
 
@@ -303,11 +305,22 @@ class MonthShiftsList{
 }
 
 
-if ($selectedName !== "") {
+if($selectedName !== "") {
   $monthShiftsListUrl = 'https://docs.google.com/spreadsheets/d/1ysbi-0T4SiMJxXUC3TZRgq263Q7QJO73RvLUdl3s1Lk/export?format=csv&gid=303224713';
   $arrayMap = array_map('str_getcsv', file($monthShiftsListUrl));
   $monthShiftsList = new MonthShiftsList($arrayMap, $selectedName);
   echo $monthShiftsList->getTable4Person();
+}
+else{
+  if($selectedDate <> "" && $selectedOrder <> ""){
+    $selectedShift = new Shift(DateTime::createFromFormat('Y-m-d H:i:s', ($selectedDate . " 00:00:00"), new DateTimeZone('UTC')), $selectedOrder);
+    
+    $neighbourhood = $selectedShift->getNeighbourhood(true);
+    
+    print_r($selectedShift);
+    print_r($neighbourhood);
+  }
+  
 }
 
 //print_r($monthShiftsList);
