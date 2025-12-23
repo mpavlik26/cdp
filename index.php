@@ -37,6 +37,10 @@ $names = [
 ];
 
 $selectedName = $_GET['person'] ?? "";
+$selectedDate = $_GET['date'] ?? "";
+$selectedOrder = $_GET['order'] ?? "";
+
+if($selectedDate == "" || $selectedOrder == ""){
 ?>
 
 <form method="get" style="margin-bottom: 20px;">
@@ -54,6 +58,7 @@ $selectedName = $_GET['person'] ?? "";
 
 
 <?php
+}
 
 ini_set('display_errors', '1');
 
