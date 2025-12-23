@@ -186,19 +186,11 @@ class MonthShiftsList{
   var $records = array();
   
   
-  public function __construct($arrayMapFromGoogleSheet){
-    $i = 0;
-    
-    foreach($arrayMapFromGoogleSheet as $record){
-      if($i){
-        $monthShiftsListRecord = new MonthShiftsListRecord($record);
-        //array_push($this->records, $monthShiftsListRecord);
-        $this->records[$monthShiftsListRecord->getKey()] = $monthShiftsListRecord;
-      }
-      $i++;
-    }
+  public function __construct($arrayMap, string $personName = ""){
+    $this->initFromArrayMap($arrayMap, $personName);
   }
   
+
   public function getTable(){
     $ret = "<table>";
     
@@ -212,6 +204,26 @@ class MonthShiftsList{
   }
   
   
+  public function init(){
+    $this->records = array();
+  }
+  
+
+  public function initFromArrayMap($arrayMap, string $personName = ""){
+    $this->init();
+    $i = 0;
+    
+    foreach($arrayMap as $record){
+      if($i){
+        $monthShiftsListRecord = new MonthShiftsListRecord($record);
+        if($personName == "" || $monthShiftsListRecord->personName == $personName)
+          $this->records[$monthShiftsListRecord->getKey()] = $monthShiftsListRecord;
+      }
+      $i++;
+    }
+  }
+
+  
   public function limitToPersonByName($personName){
     foreach ($this->records as $record){
       if(!$record->isPerson($personName))
@@ -224,19 +236,14 @@ class MonthShiftsList{
 
 $url = 'https://docs.google.com/spreadsheets/d/1ysbi-0T4SiMJxXUC3TZRgq263Q7QJO73RvLUdl3s1Lk/export?format=csv&gid=303224713';
 
-$rows = array_map('str_getcsv', file($url));
-
-$monthShiftsList = new MonthShiftsList($rows);
-
 if ($selectedName !== "") {
-  $monthShiftsList->limitToPersonByName($selectedName);
+  $arrayMap = array_map('str_getcsv', file($url));
+  $monthShiftsList = new MonthShiftsList($arrayMap, $selectedName);
   echo $monthShiftsList->getTable();
 }
 
 //print_r($monthShiftsList);
 
-
-//print_r($rows);
 
 
 ?>
