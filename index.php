@@ -25,6 +25,10 @@ header('Expires: 0');
     .good{
       color: green;
     }
+    
+    .current{
+      background-color: #e6f2ff;
+    }
   }
   </style>
 </head>
@@ -176,7 +180,7 @@ class Shift{
       array_push($ret, new Shift((clone $this->_date)->modify('-1 day'), 3));
       
       if($ibIncludeItself)
-        array_push($ret, $this);
+        array_push($ret, new Shift((clone $this->_date), $this->order));
       
       array_push($ret, new Shift(clone $this->_date, ($this->order == 1) ? 2 : 1));
       array_push($ret, new Shift(clone $this->_date, 3));
@@ -186,7 +190,7 @@ class Shift{
       array_push($ret, new Shift(clone $this->_date, 2));
       
       if($ibIncludeItself)
-        array_push($ret, $this);
+        array_push($ret, new Shift((clone $this->_date), $this->order));
       
       array_push($ret, new Shift((clone $this->_date)->modify('+1 day'), 1));
       array_push($ret, new Shift((clone $this->_date)->modify('+1 day'), 2));
@@ -194,7 +198,12 @@ class Shift{
     
     return $ret;
   }
-
+  
+  
+  public function isCurrent(){
+    return ($this->getKey() == ($GLOBALS["selectedDate"] . "\\" . $GLOBALS["selectedOrder"]));
+  }
+  
 
   public function getNeighbourhoodTD(){
     return "<td><a href=\"" . $this->getNeighbourhoodURL() . "\">detail</td>"; 
@@ -206,8 +215,8 @@ class Shift{
   }
   
   
-  public function isEqual(Shift $onShift){
-    return ($this->getKey() == $onShift->getKey());
+  public function isEqual(Shift $inShift){
+    return ($this->getKey() == $inShift->getKey());
   }
 }
 
@@ -254,7 +263,13 @@ class MonthShiftsListRecord{
 
 
   public function getTR4Neighbourhood(){
-    return "<tr><td>" . $this->shift->getCzechDateWithWeekday() . "</td><td>" . $this->shift->getCzechOrder() . "</td>" . $this->getPersonNameTD() . "<td>" . $this->getShiftMessage() . "</td></tr>";
+    return
+      "<tr". (($this->shift->isCurrent()) ? " class=\"current\"" : "") . ">" .
+        "<td>" . $this->shift->getCzechDateWithWeekday() .
+        "</td><td>" . $this->shift->getCzechOrder() .
+        "</td>" . $this->getPersonNameTD() .
+        "<td>" .  $this->getShiftMessage() .
+      "</td></tr>";
   }
 
   
@@ -269,6 +284,7 @@ class MonthShiftsListRecord{
     
   
   public function isInNeighbourhood($iaNeighbourhood){
+    //print_r($iaNeighbourhood);
     foreach ($iaNeighbourhood as $shift){
       if($this->shift->isEqual($shift))
         return true;
