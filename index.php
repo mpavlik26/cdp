@@ -1,6 +1,13 @@
+<?php
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Cache-Control: post-check=0, pre-check=0', false);
+header('Pragma: no-cache');
+header('Expires: 0');
+?>
 <html>
 
 <head>
+
   <style>
     table {
       border-collapse: collapse;
@@ -228,20 +235,30 @@ class MonthShiftsListRecord{
     $this->regularOut = new DateTime("1970-01-01 " . $input_array[18] . ":00", new DateTimeZone('UTC'));
     $this->shiftMessage = $this->getShiftMessage();
   }
+
+
+  public function getKey(){
+    return $this->shift->getKey();
+  }
   
+  
+  public function getPersonNameTD(){
+    return "<td><a href=\"" . $this->getPersonNameURL() . "\">" . $this->personName . "</td>"; 
+  }
+  
+  
+  public function getPersonNameURL(){
+    return "index.php?person=" . $this->personName; 
+  }
+
 
   public function getTR4Neighbourhood(){
-    return "<tr><td>" . $this->shift->getCzechDateWithWeekday() . "</td><td>" . $this->shift->getCzechOrder() . "</td><td>" . $this->personName . "</td><td>" . $this->getShiftMessage() . "</td></tr>";
+    return "<tr><td>" . $this->shift->getCzechDateWithWeekday() . "</td><td>" . $this->shift->getCzechOrder() . "</td>" . $this->getPersonNameTD() . "<td>" . $this->getShiftMessage() . "</td></tr>";
   }
 
   
   public function getTR4Person(){
     return "<tr><td>" . $this->shift->getCzechDateWithWeekday() . "</td><td>" . $this->shift->getCzechOrder() . "</td><td>" . $this->getShiftMessage() . "</td>" . $this->shift->getNeighbourhoodTD() . "</tr>";
-  }
-  
-  
-  public function getKey(){
-    return $this->shift->getKey();
   }
   
   
