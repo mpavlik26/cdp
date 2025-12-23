@@ -161,7 +161,7 @@ class Shift{
   }
   
   
-  public function geNneighbourhood($ibIncludeItself){
+  public function getNeighbourhood($ibIncludeItself){
     $ret = Array();
         
     if($this->order == 1 || $this->order == 2){
@@ -185,6 +185,16 @@ class Shift{
     }
     
     return ret;
+  }
+
+
+  public function getNeighbourhoodTD(){
+    return "<td><a href=\"" . $this->getNeighbourhoodURL() . "\">detail</td>"; 
+  }
+  
+  
+  public function getNeighbourhoodURL(){
+    return "index.php?date=" . getDateString($this->_date) . "&order=" . $this->order; 
   }
 }
 
@@ -216,7 +226,7 @@ class MonthShiftsListRecord{
   
   
   public function getTR4Person(){
-    return "<tr><td>" . $this->shift->getCzechDateWithWeekday() . "</td><td>" . $this->shift->getCzechOrder() . "</td><td>" . $this->getShiftMessage() . "</td></tr>";
+    return "<tr><td>" . $this->shift->getCzechDateWithWeekday() . "</td><td>" . $this->shift->getCzechOrder() . "</td><td>" . $this->getShiftMessage() . "</td>" . $this->shift->getNeighbourhoodTD() . "</tr>";
   }
   
   
