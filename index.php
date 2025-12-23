@@ -160,7 +160,7 @@ class MonthShiftsListRecord{
   }
   
   
-  public function getTR(){
+  public function getTR4Person(){
     return "<tr><td>" . getCzechDateWithWeekdayString($this->_date) . "</td><td>" . $this->getCzechOrder() . "</td><td>" . $this->getShiftMessage() . "</td></tr>";
   }
   
@@ -184,6 +184,7 @@ class MonthShiftsListRecord{
 
 class MonthShiftsList{
   var $records = array();
+  var $personName = "";
   
   
   public function __construct($arrayMap, string $personName = ""){
@@ -191,11 +192,11 @@ class MonthShiftsList{
   }
   
 
-  public function getTable(){
-    $ret = "<table>";
+  public function getTable4Person(){
+    $ret = "<p>" . $this->personName . "</p><table>";
     
     foreach($this->records as $record){
-      $ret .= $record->getTR();
+      $ret .= $record->getTR4Person();
     }
     
     $ret .= "</table>";
@@ -206,11 +207,14 @@ class MonthShiftsList{
   
   public function init(){
     $this->records = array();
+    $this->personName = "";
   }
   
 
   public function initFromArrayMap($arrayMap, string $personName = ""){
     $this->init();
+    $this->personName = $personName;
+    
     $i = 0;
     
     foreach($arrayMap as $record){
@@ -234,12 +238,11 @@ class MonthShiftsList{
 }
 
 
-$url = 'https://docs.google.com/spreadsheets/d/1ysbi-0T4SiMJxXUC3TZRgq263Q7QJO73RvLUdl3s1Lk/export?format=csv&gid=303224713';
-
 if ($selectedName !== "") {
-  $arrayMap = array_map('str_getcsv', file($url));
+  $monthShiftsListUrl = 'https://docs.google.com/spreadsheets/d/1ysbi-0T4SiMJxXUC3TZRgq263Q7QJO73RvLUdl3s1Lk/export?format=csv&gid=303224713';
+  $arrayMap = array_map('str_getcsv', file($monthShiftsListUrl));
   $monthShiftsList = new MonthShiftsList($arrayMap, $selectedName);
-  echo $monthShiftsList->getTable();
+  echo $monthShiftsList->getTable4Person();
 }
 
 //print_r($monthShiftsList);
