@@ -142,8 +142,6 @@ class Shift{
   }
 
 
-  
-
   public function getCzechOrder(): string{
     switch($this->order){
       case 1: return "dlouhá";
@@ -198,6 +196,11 @@ class Shift{
   public function getNeighbourhoodURL(){
     return "index.php?date=" . getDateString($this->_date) . "&order=" . $this->order; 
   }
+  
+  
+  public function isEqual(Shift $onShift){
+    return ($this->getKey() == $onShift->getKey());
+  }
 }
 
 
@@ -242,6 +245,16 @@ class MonthShiftsListRecord{
   }
     
   
+  public function isInNeighbourhood($iaNeighbourhood){
+    foreach ($iaNeighbourhood as $shift){
+      if($this->shift->isEqual($shift))
+        return true;
+    }
+    
+    return false;
+  }
+  
+  
   public function isPerson($personName){
     return $this->personName == $personName;
   } 
@@ -254,8 +267,8 @@ class MonthShiftsList{
   var $personName = "";
   
   
-  public function __construct($arrayMap, string $personName = ""){
-    $this->initFromArrayMap($arrayMap, $personName);
+  public function __construct($arrayMap, string $personName = "", $iaNeighbourhood = null){
+    $this->initFromArrayMap($arrayMap, $personName, $iaNeighbourhood);
   }
   
 
@@ -278,7 +291,7 @@ class MonthShiftsList{
   }
   
 
-  public function initFromArrayMap($arrayMap, string $personName = ""){
+  public function initFromArrayMap($arrayMap, string $personName = "", $iaNeighbourhood = null){
     $this->init();
     $this->personName = $personName;
     
@@ -287,7 +300,7 @@ class MonthShiftsList{
     foreach($arrayMap as $record){
       if($i){
         $monthShiftsListRecord = new MonthShiftsListRecord($record);
-        if($personName == "" || $monthShiftsListRecord->personName == $personName)
+        if($iaNeighbourhood == null && ($personName == "" || $monthShiftsListRecord->isPerson($personName)) || ($iaNeighbourhood != null && $monthShiftsListRecord->isInNeighbourhood($iaNeighbourhood)))
           $this->records[$monthShiftsListRecord->getKey()] = $monthShiftsListRecord;
       }
       $i++;
@@ -304,11 +317,11 @@ class MonthShiftsList{
   
 }
 
+$monthShiftsListUrl = 'https://docs.google.com/spreadsheets/d/1ysbi-0T4SiMJxXUC3TZRgq263Q7QJO73RvLUdl3s1Lk/export?format=csv&gid=303224713';
+$arrayMap = array_map('str_getcsv', file($monthShiftsListUrl));
 
 if($selectedName !== "") {
-  $monthShiftsListUrl = 'https://docs.google.com/spreadsheets/d/1ysbi-0T4SiMJxXUC3TZRgq263Q7QJO73RvLUdl3s1Lk/export?format=csv&gid=303224713';
-  $arrayMap = array_map('str_getcsv', file($monthShiftsListUrl));
-  $monthShiftsList = new MonthShiftsList($arrayMap, $selectedName);
+  $monthShiftsList = new MonthShiftsList($arrayMap, $selectedName, null);
   echo $monthShiftsList->getTable4Person();
 }
 else{
@@ -316,9 +329,9 @@ else{
     $selectedShift = new Shift(DateTime::createFromFormat('Y-m-d H:i:s', ($selectedDate . " 00:00:00"), new DateTimeZone('UTC')), $selectedOrder);
     
     $neighbourhood = $selectedShift->getNeighbourhood(true);
+    $monthShiftsList = new MonthShiftsList($arrayMap, "", $neighbourhood);  
     
-    print_r($selectedShift);
-    print_r($neighbourhood);
+    print_r($monthShiftsList);
   }
   
 }
