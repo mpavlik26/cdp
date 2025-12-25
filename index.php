@@ -52,7 +52,6 @@ $selectedPersonId = $_GET['personId'] ?? "";
 $selectedDate = $_GET['date'] ?? "";
 $selectedOrder = $_GET['order'] ?? "";
 
-if($selectedDate == "" || $selectedOrder == ""){
 ?>
 
 <form method="get" style="margin-bottom: 20px;">
@@ -70,7 +69,6 @@ if($selectedDate == "" || $selectedOrder == ""){
 
 
 <?php
-}
 
 ini_set('display_errors', '1');
 
@@ -143,6 +141,11 @@ function getTimeString($dateTime){
 }
 
 
+function str_getcsv_26($line){
+  return str_getcsv($line, ",", '"', "\\");
+}
+
+
 class Shift{
   var $_date;
   var $order;
@@ -206,7 +209,7 @@ class Shift{
   
 
   public function getNeighbourhoodTD(){
-    return "<td><a href=\"" . $this->getNeighbourhoodURL() . "\">detail</td>"; 
+    return "<td><a href=\"" . $this->getNeighbourhoodURL() . "\">detail střídání</td>"; 
   }
   
   
@@ -241,7 +244,10 @@ class MonthShiftsListRecord{
   
   
 	public function __construct($input_array){
-		$this->shift = new Shift(DateTime::createFromFormat('Y-m-d H:i:s', ($input_array[0] . " 00:00:00"), new DateTimeZone('UTC')), $input_array[1]);
+		if($input_array == null)
+      return;
+    
+    $this->shift = new Shift(DateTime::createFromFormat('Y-m-d H:i:s', ($input_array[0] . " 00:00:00"), new DateTimeZone('UTC')), $input_array[1]);
     $this->personId = $input_array[4];
     $this->personName = $input_array[6];
     $this->in = new DateTime("1970-01-01 " . $input_array[9] . ":00", new DateTimeZone('UTC'));
@@ -380,7 +386,7 @@ class MonthShiftsList{
 }
 
 $monthShiftsListUrl = 'https://docs.google.com/spreadsheets/d/1ysbi-0T4SiMJxXUC3TZRgq263Q7QJO73RvLUdl3s1Lk/export?format=csv&gid=303224713';
-$arrayMap = array_map('str_getcsv', file($monthShiftsListUrl));
+$arrayMap = array_map('str_getcsv_26', file($monthShiftsListUrl));
 
 if($selectedPersonId !== "") {
   $monthShiftsList = new MonthShiftsList($arrayMap, $selectedPersonId, null);
