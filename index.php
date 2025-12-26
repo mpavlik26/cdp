@@ -410,6 +410,6 @@ else{
     ← zpět
 </a>
 &nbsp;&nbsp;
-<a href="/index.php">Domů</a>
+<a href="index.php">Domů</a>
 </body>
 </html>
