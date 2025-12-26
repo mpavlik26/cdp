@@ -74,6 +74,17 @@ $selectedComplete = $_GET['complete'] ?? "";
 ini_set('display_errors', '1');
 
 
+enum ETableDisplay: int{
+  case TR = 1;
+  case DATE = 2;
+  case ORDER = 4;
+  case NAME = 8;
+  case SHIFT_MESSAGE = 16;
+  case NEIGHBOURHOOD = 32;
+}
+
+
+
 function compareDateTimes(DateTime $dateTime1, DateTime $dateTime2): int{
   $timestamp1 = $dateTime1->getTimeStamp();
   $timestamp2 = $dateTime2->getTimeStamp();
@@ -283,24 +294,22 @@ class MonthShiftsListRecord{
   }
 
 
-  public function getTR(): string{
+  public function getTR(ETableDisplay $whatToDisplay): string{
+    $whatToDisplayValue = $whatToDisplay->value;
+    
     return
       $this->getTRTag() .
-        "<td>" . $this->shift->getCzechDateWithWeekday() .
-        "</td><td>" . $this->shift->getCzechOrder() .
-        "</td>" . $this->getPersonNameTD() .
-        "<td>" .  $this->getShiftMessage() .
-      "</td></tr>";
+        "<td>" . $this->shift->getCzechDateWithWeekday() . "</td>" .
+        "<td>" . $this->shift->getCzechOrder() . "</td>" .
+        (($whatToDisplayValue & ETableDisplay::NAME->value) ? $this->getPersonNameTD() : "") .
+        "<td>" .  $this->getShiftMessage() . "</td>" .
+        (($whatToDisplayValue & ETableDisplay::NEIGHBOURHOOD->value) ? $this->shift->getNeighbourhoodTD() : "") .
+      "</tr>";
   }
 
   
   public function getTRTag(): string{
     return "<tr". (($this->shift->isCurrent()) ? " class=\"current\"" : "") . ">";
-  }
-  
-  
-  public function getTR4Person(): string{
-    return $this->getTRTag() . "<td>" . $this->shift->getCzechDateWithWeekday() . "</td><td>" . $this->shift->getCzechOrder() . "</td><td>" . $this->getShiftMessage() . "</td>" . $this->shift->getNeighbourhoodTD() . "</tr>";
   }
   
   
@@ -341,7 +350,7 @@ class MonthShiftsList{
     $ret = "<table>";
     
     foreach($this->records as $record){
-      $ret .= $record->getTR();
+      $ret .= $record->getTR(ETableDisplay::NAME);
     }
     
     $ret .= "</table>";
@@ -354,7 +363,7 @@ class MonthShiftsList{
     $ret = "<p>" . $this->personName . ":</p><table>";
     
     foreach($this->records as $record){
-      $ret .= $record->getTR4Person();
+      $ret .= $record->getTR(ETableDisplay::NEIGHBOURHOOD);
     }
     
     $ret .= "</table>";
