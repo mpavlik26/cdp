@@ -51,6 +51,7 @@ $names = [
 $selectedPersonId = $_GET['personId'] ?? "";
 $selectedDate = $_GET['date'] ?? "";
 $selectedOrder = $_GET['order'] ?? "";
+$selectedComplete = $_GET['complete'] ?? "";
 
 ?>
 
@@ -388,21 +389,26 @@ class MonthShiftsList{
 $monthShiftsListUrl = 'https://docs.google.com/spreadsheets/d/1ysbi-0T4SiMJxXUC3TZRgq263Q7QJO73RvLUdl3s1Lk/export?format=csv&gid=303224713';
 $arrayMap = array_map('str_getcsv_26', file($monthShiftsListUrl));
 
-if($selectedPersonId !== "") {
-  $monthShiftsList = new MonthShiftsList($arrayMap, $selectedPersonId, null);
-  
-  echo $monthShiftsList->getTable4Person();
+if($selectedComplete == 1){
+  $monthShiftsList = new MonthShiftsList($arrayMap, "", null);
+  echo $monthShiftsList->getTable4Neighbourhood();
 }
 else{
-  if($selectedDate <> "" && $selectedOrder <> ""){
-    $selectedShift = new Shift(DateTime::createFromFormat('Y-m-d H:i:s', ($selectedDate . " 00:00:00"), new DateTimeZone('UTC')), $selectedOrder);
+  if($selectedPersonId !== "") {
+    $monthShiftsList = new MonthShiftsList($arrayMap, $selectedPersonId, null);
     
-    $neighbourhood = $selectedShift->getNeighbourhood(true);
-    $monthShiftsList = new MonthShiftsList($arrayMap, "", $neighbourhood);  
-    
-    echo $monthShiftsList->getTable4Neighbourhood();
+    echo $monthShiftsList->getTable4Person();
   }
-  
+  else{
+    if($selectedDate <> "" && $selectedOrder <> ""){
+      $selectedShift = new Shift(DateTime::createFromFormat('Y-m-d H:i:s', ($selectedDate . " 00:00:00"), new DateTimeZone('UTC')), $selectedOrder);
+      
+      $neighbourhood = $selectedShift->getNeighbourhood(true);
+      $monthShiftsList = new MonthShiftsList($arrayMap, "", $neighbourhood);  
+      
+      echo $monthShiftsList->getTable4Neighbourhood();
+    }
+  }
 }
 ?>
 <hr/>
@@ -411,5 +417,7 @@ else{
 </a>
 &nbsp;&nbsp;
 <a href="index.php">Domů</a>
+&nbsp;&nbsp;
+<a href="index.php?complete=1">Kompletní směnář</a>
 </body>
 </html>
