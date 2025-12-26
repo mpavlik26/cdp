@@ -113,7 +113,7 @@ function getCzechDateWithWeekdayString(DateTime $dt): string{
 }
 
 
-function getTimeInMessage($time, $regularTime, $tillFrom){
+function getTimeInMessage(DateTime $time, DateTime $regularTime, string $tillFrom){
   $comparisonResult = compareDateTimes($time, $regularTime);
   $lsResult = "";
   
@@ -137,19 +137,19 @@ function getTimeInMessage($time, $regularTime, $tillFrom){
 }
 
 
-function getTimeString($dateTime){
+function getTimeString(DateTime $dateTime): string{
   return $dateTime->format("G:i");
 }
 
 
-function str_getcsv_26($line){
+function str_getcsv_26(string $line): array{
   return str_getcsv($line, ",", '"', "\\");
 }
 
 
 class Shift{
-  var $_date;
-  var $order;
+  public DateTime $_date;
+  public int $order;
   
   
   public function __construct(DateTime $idDate, int $inOrder){
@@ -172,12 +172,12 @@ class Shift{
   }
   
   
-  public function getKey(){
+  public function getKey(): string{
     return getDateString($this->_date) . "\\" . $this->order;
   }
   
   
-  public function getNeighbourhood($ibIncludeItself){
+  public function getNeighbourhood($ibIncludeItself): Array{
     $ret = Array();
         
     if($this->order == 1 || $this->order == 2){
@@ -204,27 +204,27 @@ class Shift{
   }
   
   
-  public function isCurrent(){
+  public function isCurrent(): bool{
     return ($this->getKey() == ($GLOBALS["selectedDate"] . "\\" . $GLOBALS["selectedOrder"]));
   }
   
 
-  public function getNeighbourhoodTD(){
+  public function getNeighbourhoodTD(): string{
     return "<td><a href=\"" . $this->getNeighbourhoodURL() . "\">detail střídání</td>"; 
   }
   
   
-  public function getNeighbourhoodURL(){
+  public function getNeighbourhoodURL(): string{
     return "index.php?" . $this->getShiftURLParams();
   }
   
   
-  public function getShiftURLParams(){
+  public function getShiftURLParams(): string{
     return "date=" . getDateString($this->_date) . "&order=" . $this->order; 
   }
   
   
-  public function isEqual(Shift $inShift){
+  public function isEqual(Shift $inShift): bool{
     return ($this->getKey() == $inShift->getKey());
   }
 }
@@ -232,19 +232,17 @@ class Shift{
 
 
 class MonthShiftsListRecord{
-  var $shift;
-  var $_date;
-  var $in;
-  var $order;
-  var $out;
-  var $personId;
-  var $personName;
-  var $regularIn;
-  var $regularOut;
-  var $shiftMessage;
+  public Shift $shift;
+  public DateTime $in;
+  public DateTime $out;
+  public int $personId;
+  public string $personName;
+  public DateTime $regularIn;
+  public DateTime $regularOut;
+  public string $shiftMessage;
   
   
-	public function __construct($input_array){
+	public function __construct(?array $input_array){
 		if($input_array == null)
       return;
     
@@ -259,22 +257,22 @@ class MonthShiftsListRecord{
   }
 
 
-  public function getKey(){
+  public function getKey(): string{
     return $this->shift->getKey();
   }
   
   
-  public function getPersonNameTD(){
+  public function getPersonNameTD(): string{
     return "<td><a href=\"" . $this->getPersonIdURL() . "\">" . $this->personName . "</td>"; 
   }
   
   
-  public function getPersonIdURL(){
+  public function getPersonIdURL(): string{
     return "index.php?personId=" . $this->personId . "&" . $this->shift->getShiftURLParams(); 
   }
 
 
-  public function getTR4Neighbourhood(){
+  public function getTR4Neighbourhood(): string{
     return
       $this->getTRTag() .
         "<td>" . $this->shift->getCzechDateWithWeekday() .
@@ -285,23 +283,22 @@ class MonthShiftsListRecord{
   }
 
   
-  public function getTRTag(){
+  public function getTRTag(): string{
     return "<tr". (($this->shift->isCurrent()) ? " class=\"current\"" : "") . ">";
   }
   
   
-  public function getTR4Person(){
+  public function getTR4Person(): string{
     return $this->getTRTag() . "<td>" . $this->shift->getCzechDateWithWeekday() . "</td><td>" . $this->shift->getCzechOrder() . "</td><td>" . $this->getShiftMessage() . "</td>" . $this->shift->getNeighbourhoodTD() . "</tr>";
   }
   
   
-  public function getShiftMessage(){
+  public function getShiftMessage(): string{
      return getTimeInMessage($this->in, $this->regularIn, "FROM") . " a " . getTimeInMessage($this->out, $this->regularOut, "TILL");
   }
     
   
-  public function isInNeighbourhood($iaNeighbourhood){
-    //print_r($iaNeighbourhood);
+  public function isInNeighbourhood(array $iaNeighbourhood): bool{
     foreach ($iaNeighbourhood as $shift){
       if($this->shift->isEqual($shift))
         return true;
@@ -311,7 +308,7 @@ class MonthShiftsListRecord{
   }
   
   
-  public function isPerson($personId){
+  public function isPerson(int $personId): bool{
     return $this->personId == $personId;
   } 
  
@@ -319,16 +316,16 @@ class MonthShiftsListRecord{
 
 
 class MonthShiftsList{
-  var $records = array();
-  var $personName = "";
+  public array $records = array();
+  public string $personName = "";
   
   
-  public function __construct($arrayMap, string $personId = "", $iaNeighbourhood = null){
+  public function __construct(array $arrayMap, ?int $personId = null, ?array $iaNeighbourhood = null){
     $this->initFromArrayMap($arrayMap, $personId, $iaNeighbourhood);
   }
   
 
-  public function getTable4Neighbourhood(){
+  public function getTable4Neighbourhood(): string{
     $ret = "<table>";
     
     foreach($this->records as $record){
@@ -341,7 +338,7 @@ class MonthShiftsList{
   }
 
 
-  public function getTable4Person(){
+  public function getTable4Person(): string{
     $ret = "<p>" . $this->personName . ":</p><table>";
     
     foreach($this->records as $record){
@@ -354,22 +351,22 @@ class MonthShiftsList{
   }
   
   
-  public function init(){
+  public function init(): void{
     $this->records = array();
     $this->personName = "";
   }
   
 
-  public function initFromArrayMap($arrayMap, string $personId = "", $iaNeighbourhood = null){
+  public function initFromArrayMap(array $arrayMap, ?int $personId = null, ?array $iaNeighbourhood = null): void{
     $this->init();
-    $this->personName = ($personId == "") ? "" : $GLOBALS["names"][$personId];
+    $this->personName = ($personId == null) ? "" : $GLOBALS["names"][$personId];
     
     $i = 0;
     
     foreach($arrayMap as $record){
-      if($i){
+      if($i > 0){
         $monthShiftsListRecord = new MonthShiftsListRecord($record);
-        if($iaNeighbourhood == null && ($personId == "" || $monthShiftsListRecord->isPerson($personId)) || ($iaNeighbourhood != null && $monthShiftsListRecord->isInNeighbourhood($iaNeighbourhood)))
+        if($iaNeighbourhood == null && ($personId == null || $monthShiftsListRecord->isPerson($personId)) || ($iaNeighbourhood != null && $monthShiftsListRecord->isInNeighbourhood($iaNeighbourhood)))
           $this->records[$monthShiftsListRecord->getKey()] = $monthShiftsListRecord;
       }
       $i++;
@@ -377,9 +374,9 @@ class MonthShiftsList{
   }
 
   
-  public function limitToPersonById($personId){
+  public function limitToPersonById(int $personId){
     foreach ($this->records as $record){
-      if(!$record->isPerson($personId))
+      if($record->isPerson($personId) == false)
         unset($this->records[$record->getKey()]);
     }
   }
@@ -390,12 +387,12 @@ $monthShiftsListUrl = 'https://docs.google.com/spreadsheets/d/1ysbi-0T4SiMJxXUC3
 $arrayMap = array_map('str_getcsv_26', file($monthShiftsListUrl));
 
 if($selectedComplete == 1){
-  $monthShiftsList = new MonthShiftsList($arrayMap, "", null);
+  $monthShiftsList = new MonthShiftsList($arrayMap, null, null);
   echo $monthShiftsList->getTable4Neighbourhood();
 }
 else{
   if($selectedPersonId !== "") {
-    $monthShiftsList = new MonthShiftsList($arrayMap, $selectedPersonId, null);
+    $monthShiftsList = new MonthShiftsList($arrayMap, ($selectedPersonId == "") ? null : (int)$selectedPersonId, null);
     
     echo $monthShiftsList->getTable4Person();
   }
@@ -404,7 +401,7 @@ else{
       $selectedShift = new Shift(DateTime::createFromFormat('Y-m-d H:i:s', ($selectedDate . " 00:00:00"), new DateTimeZone('UTC')), $selectedOrder);
       
       $neighbourhood = $selectedShift->getNeighbourhood(true);
-      $monthShiftsList = new MonthShiftsList($arrayMap, "", $neighbourhood);  
+      $monthShiftsList = new MonthShiftsList($arrayMap, null, $neighbourhood);  
       
       echo $monthShiftsList->getTable4Neighbourhood();
     }
