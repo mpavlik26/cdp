@@ -96,6 +96,11 @@ function compareDateTimes(DateTime $dateTime1, DateTime $dateTime2): int{
 }
 
 
+function createDateTimeFromDateString(string $dateString): DateTime{
+  return DateTime::createFromFormat('Y-m-d H:i:s', ($dateString . " 00:00:00"), new DateTimeZone('UTC'));
+}
+
+
 function getDateString(DateTime $dateTime): string{
   return $dateTime->format("Y-m-d");
 }
@@ -268,7 +273,7 @@ class MonthShiftsListRecord{
 		if($input_array == null)
       return;
     
-    $this->shift = new Shift(DateTime::createFromFormat('Y-m-d H:i:s', ($input_array[0] . " 00:00:00"), new DateTimeZone('UTC')), $input_array[1]);
+    $this->shift = new Shift(createDateTimeFromDateString($input_array[0]), $input_array[1]);
     $this->personId = $input_array[4];
     $this->personName = $input_array[6];
     $this->in = new DateTime("1970-01-01 " . $input_array[9] . ":00", new DateTimeZone('UTC'));
@@ -296,13 +301,13 @@ class MonthShiftsListRecord{
 
   public function getTR(int $whatToDisplay): string{
     return
-      $this->getTRTag() .
+      (($whatToDisplay & ETableDisplay::TR->value) ? $this->getTRTag() : "") .
         (($whatToDisplay & ETableDisplay::DATE->value) ? "<td>" . $this->shift->getCzechDateWithWeekday() . "</td>" : "") .
-        "<td>" . $this->shift->getCzechOrder() . "</td>" .
+        (($whatToDisplay & ETableDisplay::ORDER->value) ? "<td>" . $this->shift->getCzechOrder() . "</td>" : "") .
         (($whatToDisplay & ETableDisplay::NAME->value) ? $this->getPersonNameTD() : "") .
-        "<td>" .  $this->getShiftMessage() . "</td>" .
+        (($whatToDisplay & ETableDisplay::SHIFT_MESSAGE->value) ? "<td>" .  $this->getShiftMessage() . "</td>" : "") .
         (($whatToDisplay & ETableDisplay::NEIGHBOURHOOD->value) ? $this->shift->getNeighbourhoodTD() : "") .
-      "</tr>";
+      (($whatToDisplay & ETableDisplay::TR->value) ? "</tr>" : "" );
   }
 
   
@@ -348,7 +353,7 @@ class MonthShiftsList{
     $ret = "<table>";
     
     foreach($this->records as $record){
-      $ret .= $record->getTR(ETableDisplay::DATE->value | ETableDisplay::NAME->value);
+      $ret .= $record->getTR(ETableDisplay::TR->value | ETableDisplay::DATE->value | ETableDisplay::ORDER->value | ETableDisplay::NAME->value | ETableDisplay::SHIFT_MESSAGE->value);
     }
     
     $ret .= "</table>";
@@ -361,7 +366,7 @@ class MonthShiftsList{
     $ret = "<p>" . $this->personName . ":</p><table>";
     
     foreach($this->records as $record){
-      $ret .= $record->getTR(ETableDisplay::DATE->value | ETableDisplay::NEIGHBOURHOOD->value);
+      $ret .= $record->getTR(ETableDisplay::TR->value| ETableDisplay::DATE->value | ETableDisplay::ORDER->value | ETableDisplay::SHIFT_MESSAGE->value | ETableDisplay::NEIGHBOURHOOD->value);
     }
     
     $ret .= "</table>";
@@ -372,7 +377,19 @@ class MonthShiftsList{
   
   public function getTableGroupedByDate(): string{
     $ret = "<table>";
-    $ret .= "<tr><th>Date</th><th colspan=\"2\">" . getCzechOrder(1) . "</th><th colspan=\"2\">" . getCzechOrder(2) . "</th><th colspan=\"2\">" . getCzechOrder(3) . "</tr>";
+    $ret .= "<tr><th>Datum</th><th colspan=\"2\">" . getCzechOrder(1) . "</th><th colspan=\"2\">" . getCzechOrder(2) . "</th><th colspan=\"2\">" . getCzechOrder(3) . "</tr>";
+    
+    foreach($this->dates as $date => $records){
+      $ret .= "<tr>";
+      
+      $ret .= "<td><b>" . getCzechDateWithWeekdayString(createDateTimeFromDateString($date)) . "</b></td>";
+      
+      foreach($records as $record){
+        $ret .= $record->getTR(ETableDisplay::NAME->value | ETableDisplay::SHIFT_MESSAGE->value);
+      }
+      
+      $ret .= "</tr>";
+    }
     
     $ret .= "</table>";
     return $ret;
@@ -431,8 +448,8 @@ $arrayMap = array_map('str_getcsv_26', file($monthShiftsListUrl));
 if($selectedComplete == 1){
   $monthShiftsList = new MonthShiftsList($arrayMap, null, null);
 
-  //echo $monthShiftsList->getTableGroupedByDate();
-  echo $monthShiftsList->getTable();
+  echo $monthShiftsList->getTableGroupedByDate();
+  //echo $monthShiftsList->getTable();
 }
 else{
   if($selectedPersonId !== "") {
@@ -442,7 +459,7 @@ else{
   }
   else{
     if($selectedDate <> "" && $selectedOrder <> ""){
-      $selectedShift = new Shift(DateTime::createFromFormat('Y-m-d H:i:s', ($selectedDate . " 00:00:00"), new DateTimeZone('UTC')), $selectedOrder);
+      $selectedShift = new Shift(createDateTimeFromDateString($selectedDate), $selectedOrder);
       
       $neighbourhood = $selectedShift->getNeighbourhood(true);
       $monthShiftsList = new MonthShiftsList($arrayMap, null, $neighbourhood);  
