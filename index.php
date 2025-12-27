@@ -297,7 +297,7 @@ class MonthShiftsListRecord{
   public function getTR(int $whatToDisplay): string{
     return
       $this->getTRTag() .
-        "<td>" . $this->shift->getCzechDateWithWeekday() . "</td>" .
+        (($whatToDisplay & ETableDisplay::DATE->value) ? "<td>" . $this->shift->getCzechDateWithWeekday() . "</td>" : "") .
         "<td>" . $this->shift->getCzechOrder() . "</td>" .
         (($whatToDisplay & ETableDisplay::NAME->value) ? $this->getPersonNameTD() : "") .
         "<td>" .  $this->getShiftMessage() . "</td>" .
@@ -348,7 +348,7 @@ class MonthShiftsList{
     $ret = "<table>";
     
     foreach($this->records as $record){
-      $ret .= $record->getTR(ETableDisplay::NAME->value);
+      $ret .= $record->getTR(ETableDisplay::DATE->value | ETableDisplay::NAME->value);
     }
     
     $ret .= "</table>";
@@ -361,7 +361,7 @@ class MonthShiftsList{
     $ret = "<p>" . $this->personName . ":</p><table>";
     
     foreach($this->records as $record){
-      $ret .= $record->getTR(ETableDisplay::NEIGHBOURHOOD->value);
+      $ret .= $record->getTR(ETableDisplay::DATE->value | ETableDisplay::NEIGHBOURHOOD->value);
     }
     
     $ret .= "</table>";
