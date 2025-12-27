@@ -294,16 +294,14 @@ class MonthShiftsListRecord{
   }
 
 
-  public function getTR(ETableDisplay $whatToDisplay): string{
-    $whatToDisplayValue = $whatToDisplay->value;
-    
+  public function getTR(int $whatToDisplay): string{
     return
       $this->getTRTag() .
         "<td>" . $this->shift->getCzechDateWithWeekday() . "</td>" .
         "<td>" . $this->shift->getCzechOrder() . "</td>" .
-        (($whatToDisplayValue & ETableDisplay::NAME->value) ? $this->getPersonNameTD() : "") .
+        (($whatToDisplay & ETableDisplay::NAME->value) ? $this->getPersonNameTD() : "") .
         "<td>" .  $this->getShiftMessage() . "</td>" .
-        (($whatToDisplayValue & ETableDisplay::NEIGHBOURHOOD->value) ? $this->shift->getNeighbourhoodTD() : "") .
+        (($whatToDisplay & ETableDisplay::NEIGHBOURHOOD->value) ? $this->shift->getNeighbourhoodTD() : "") .
       "</tr>";
   }
 
@@ -350,7 +348,7 @@ class MonthShiftsList{
     $ret = "<table>";
     
     foreach($this->records as $record){
-      $ret .= $record->getTR(ETableDisplay::NAME);
+      $ret .= $record->getTR(ETableDisplay::NAME->value);
     }
     
     $ret .= "</table>";
@@ -363,7 +361,7 @@ class MonthShiftsList{
     $ret = "<p>" . $this->personName . ":</p><table>";
     
     foreach($this->records as $record){
-      $ret .= $record->getTR(ETableDisplay::NEIGHBOURHOOD);
+      $ret .= $record->getTR(ETableDisplay::NEIGHBOURHOOD->value);
     }
     
     $ret .= "</table>";
