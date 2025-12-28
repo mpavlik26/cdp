@@ -26,6 +26,11 @@ header('Expires: 0');
       color: green;
     }
     
+    .issues{
+      color: blue;
+      font-style: italic;
+    }
+    
     .current{
       background-color: #e6f2ff;
     }
@@ -236,13 +241,31 @@ class Shift{
   }
   
 
-  public function createNextShift(): shift{
-    return null;
+  public function createNextShift(): ?Shift{
+    switch($this->order){
+      case 2:
+        return new Shift((clone $this->_date), 3);
+        break;
+      case 3:
+        return new Shift((clone $this->_date)->modify('+1 day'), 2);
+        break;
+      default:
+        return null;
+    }
   }
 
   
-  public function createPreviousShift(): shift{
-    return null;
+  public function createPreviousShift(): ?Shift{
+    switch($this->order){
+      case 2:
+        return new Shift((clone $this->_date)->modify('-1 day'), 3);
+        break;
+      case 3:
+        return new Shift((clone $this->_date), 2);
+        break;
+      default:
+        return null;
+    }
   }
   
   
@@ -272,8 +295,54 @@ class Shift{
 }
 
 
+class Issue{
+  public EIssueType $type;
+  public string $message;
+
+  
+  public function __construct(EIssueType $type, ?string $message = ""){
+    $this->type = $type;
+    $this->message = $message;
+  }
+}
+
+
+class Issues{
+  public array $issues = array();
+
+
+  public function __construct(){
+    $this->issues = array();
+  }
+  
+  
+  public function add(Issue $issue){
+    $this->issues[] = $issue;
+  }
+  
+  
+  public function count(): int{
+    return count($this->issues);
+  }
+  
+  
+  public function getMessage(?string $separator = ", "){
+    $ret = "";
+    $i = 0;
+    
+    foreach($this->issues as $issue){
+      $ret .= (($i > 0) ? $separator : "") . $issue->message;
+      $i++;
+    }
+    
+    return $ret;
+  }
+}
+
+
 
 class MonthShiftsListRecord{
+  public Issues $issues;
   public Shift $shift;
   public DateTime $in;
   public DateTime $out;
@@ -281,12 +350,13 @@ class MonthShiftsListRecord{
   public string $personName;
   public DateTime $regularIn;
   public DateTime $regularOut;
-  public string $shiftMessage;
   
   
 	public function __construct(?array $input_array){
 		if($input_array == null)
       return;
+
+    $this->issues = new Issues();
     
     $this->shift = new Shift(createDateTimeFromDateString($input_array[0]), $input_array[1]);
     $this->personId = $input_array[4];
@@ -295,9 +365,28 @@ class MonthShiftsListRecord{
     $this->out = new DateTime("1970-01-01 " . $input_array[10] . ":00", new DateTimeZone('UTC'));
     $this->regularIn = new DateTime("1970-01-01 " . $input_array[17] . ":00", new DateTimeZone('UTC'));
     $this->regularOut = new DateTime("1970-01-01 " . $input_array[18] . ":00", new DateTimeZone('UTC'));
-    $this->shiftMessage = $this->getShiftMessage();
   }
 
+
+  public function findIssues(MonthShiftsList $monthShiftsList): void{
+    if($this->shift->order == 2 || $this->shift->order == 3){
+      if(($previousShift = $this->shift->createPreviousShift()) != null){  
+        if(($previousRecord = $monthShiftsList->records[$previousShift->getKey()] ?? null) != null){
+          if(compareDateTimes($previousRecord->out, $this->in) == -1){
+            $this->issues->add(new Issue(EIssueType::WITHOUT_TAKEOVER, "v " . getTimeString($this->in) . " bez převzetí"));
+          }
+        }
+      }
+      if(($nextShift = $this->shift->createNextShift()) != null){  
+        if(($nextRecord = $monthShiftsList->records[$nextShift->getKey()] ?? null) != null){
+          if(compareDateTimes($this->out, $nextRecord->in) == -1){
+            $this->issues->add(new Issue(EIssueType::WITHOUT_HANDOVER, "v " . getTimeString($this->out) . " bez předání"));
+          }
+        }
+      }
+    }
+  }
+  
 
   public function getKey(): string{
     return $this->shift->getKey();
@@ -332,7 +421,19 @@ class MonthShiftsListRecord{
   
   
   public function getShiftMessage(): string{
-     return getTimeInMessage($this->in, $this->regularIn, "FROM") . " a " . getTimeInMessage($this->out, $this->regularOut, "TILL");
+    $ret =
+      getTimeInMessage($this->in, $this->regularIn, "FROM") .
+      " a " .
+      getTimeInMessage($this->out, $this->regularOut, "TILL");
+
+    if($this->issues->count() > 0){
+      $ret .= ";<br><span class=\"issues\">";
+      $ret .= "(" . $this->issues->getMessage() . ")";
+      $ret .= "</span>";
+    }
+       
+    return $ret;  
+       
   }
     
   
@@ -361,6 +462,13 @@ class MonthShiftsList{
   
   public function __construct(array $arrayMap, ?int $personId = null, ?array $iaNeighbourhood = null){
     $this->initFromArrayMap($arrayMap, $personId, $iaNeighbourhood);
+  }
+  
+  
+  public function findIssues(){
+     foreach($this->records as $record){
+       $record->findIssues($this);
+     }
   }
   
 
@@ -447,6 +555,7 @@ class MonthShiftsList{
     }
     
     $this->initDates();
+    $this->findIssues();
   }
 
   
