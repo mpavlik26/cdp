@@ -84,6 +84,11 @@ enum ETableDisplay: int{
 }
 
 
+enum EIssueType: int{
+  case WITHOUT_HANDOVER = 1;
+  case WITHOUT_TAKEOVER = 2;
+}
+
 
 function compareDateTimes(DateTime $dateTime1, DateTime $dateTime2): int{
   $timestamp1 = $dateTime1->getTimeStamp();
@@ -204,7 +209,7 @@ class Shift{
   }
   
   
-  public function getNeighbourhood($ibIncludeItself): Array{
+  public function createNeighbourhood($ibIncludeItself): Array{
     $ret = Array();
         
     if($this->order == 1 || $this->order == 2){
@@ -230,13 +235,23 @@ class Shift{
     return $ret;
   }
   
+
+  public function createNextShift(): shift{
+    return null;
+  }
+
+  
+  public function createPreviousShift(): shift{
+    return null;
+  }
+  
   
   public function isCurrent(): bool{
     return ($this->getKey() == ($GLOBALS["selectedDate"] . "\\" . $GLOBALS["selectedOrder"]));
   }
   
 
-  public function getNeighbourhoodTD(): string{
+  public function createNeighbourhoodTD(): string{
     return "<td><a href=\"" . $this->getNeighbourhoodURL() . "\">detail střídání</td>"; 
   }
   
@@ -306,7 +321,7 @@ class MonthShiftsListRecord{
         (($whatToDisplay & ETableDisplay::ORDER->value) ? "<td>" . $this->shift->getCzechOrder() . "</td>" : "") .
         (($whatToDisplay & ETableDisplay::NAME->value) ? $this->getPersonNameTD() : "") .
         (($whatToDisplay & ETableDisplay::SHIFT_MESSAGE->value) ? "<td>" .  $this->getShiftMessage() . "</td>" : "") .
-        (($whatToDisplay & ETableDisplay::NEIGHBOURHOOD->value) ? $this->shift->getNeighbourhoodTD() : "") .
+        (($whatToDisplay & ETableDisplay::NEIGHBOURHOOD->value) ? $this->shift->createNeighbourhoodTD() : "") .
       (($whatToDisplay & ETableDisplay::TR->value) ? "</tr>" : "" );
   }
 
@@ -408,7 +423,11 @@ class MonthShiftsList{
       $this->dates[$record->shift->getDateString()][$record->shift->order] = $record;
     }
     
-    ksort($this->dates, SORT_STRING);
+    ksort($this->dates, SORT_STRING); //sort according to date
+    
+    foreach($this->dates as $records){
+      ksort($records, SORT_NUMERIC); //sort according to order
+    }
   }
 
 
@@ -461,7 +480,7 @@ else{
     if($selectedDate <> "" && $selectedOrder <> ""){
       $selectedShift = new Shift(createDateTimeFromDateString($selectedDate), $selectedOrder);
       
-      $neighbourhood = $selectedShift->getNeighbourhood(true);
+      $neighbourhood = $selectedShift->createNeighbourhood(true);
       $monthShiftsList = new MonthShiftsList($arrayMap, null, $neighbourhood);  
       
       echo $monthShiftsList->getTable();
