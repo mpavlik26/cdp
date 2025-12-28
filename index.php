@@ -92,6 +92,7 @@ enum ETableDisplay: int{
 enum EIssueType: int{
   case WITHOUT_HANDOVER = 1;
   case WITHOUT_TAKEOVER = 2;
+  case GO_TO_GREEN = 4;
 }
 
 
@@ -255,6 +256,20 @@ class Shift{
   }
 
   
+  public function createPartyShift(): ?Shift{
+    switch($this->order){
+      case 1:
+        return new Shift((clone $this->_date), 2);
+        break;
+      case 2:
+        return new Shift((clone $this->_date), 1);
+        break;
+      default:
+        return null;
+    }
+  }
+    
+  
   public function createPreviousShift(): ?Shift{
     switch($this->order){
       case 2:
@@ -369,6 +384,7 @@ class MonthShiftsListRecord{
 
 
   public function findIssues(MonthShiftsList $monthShiftsList): void{
+    //WITHOUT_HANDOVER and WITHOUT_TAKEOVER issues
     if($this->shift->order == 2 || $this->shift->order == 3){
       if(($previousShift = $this->shift->createPreviousShift()) != null){  
         if(($previousRecord = $monthShiftsList->records[$previousShift->getKey()] ?? null) != null){
@@ -381,6 +397,22 @@ class MonthShiftsListRecord{
         if(($nextRecord = $monthShiftsList->records[$nextShift->getKey()] ?? null) != null){
           if(compareDateTimes($this->out, $nextRecord->in) == -1){
             $this->issues->add(new Issue(EIssueType::WITHOUT_HANDOVER, "v " . getTimeString($this->out) . " bez předání"));
+          }
+        }
+      }
+    }
+    
+    //GO_TO_GREEN issue
+    if($this->shift->order == 2){
+      if(($partyShift = $this->shift->createPartyShift()) != null){
+        if(($partyRecord = $monthShiftsList->records[$partyShift->getKey()] ?? null) != null){
+          if(compareDateTimes($partyRecord->out, $this->out) == -1){
+            
+            if($nextRecord != null){//it's already introduced and set in the block where WITHOUT_HANDOVER and WITHOUT_TAKEOVER issues are tested
+              if(compareDateTimes($nextRecord->in, $partyRecord->out) <= 0){
+                $this->issues->add(new Issue(EIssueType::GO_TO_GREEN, "až v " . getTimeString($nextRecord->in) . " přijde " . $nextRecord->personName . ", přesednout na zelenou"));
+              }
+            }
           }
         }
       }
