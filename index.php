@@ -79,6 +79,8 @@ $selectedComplete = $_GET['complete'] ?? "";
 ini_set('display_errors', '1');
 
 
+const HANDOVER_INTERVAL = 15 * 60; //handover interval in seconds;
+
 enum ETableDisplay: int{
   case TR = 1;
   case DATE = 2;
@@ -93,6 +95,7 @@ enum EIssueType: int{
   case WITHOUT_HANDOVER = 1;
   case WITHOUT_TAKEOVER = 2;
   case GO_TO_GREEN = 4;
+  case START_ON_GREEN = 8;
 }
 
 
@@ -100,10 +103,7 @@ function compareDateTimes(DateTime $dateTime1, DateTime $dateTime2): int{
   $timestamp1 = $dateTime1->getTimeStamp();
   $timestamp2 = $dateTime2->getTimeStamp();
   
-  if($timestamp1 == $timestamp2)
-    return 0;
-  
-  return ($timestamp1 < $timestamp2) ? -1 : 1;  
+  return $timestamp1 - $timestamp2;
 }
 
 
@@ -154,11 +154,11 @@ function getTimeInMessage(DateTime $time, DateTime $regularTime, string $tillFro
   $comparisonResult = compareDateTimes($time, $regularTime);
   $lsResult = "";
   
-  if($comparisonResult == -1){
+  if($comparisonResult < 0){
     $lsResult = "<span class=\"" . (($tillFrom == "FROM") ? "bad\">již" : "good\">jen") . " ";
   }
   
-  if($comparisonResult == 1){
+  if($comparisonResult > 0){
     $lsResult = "<span class=\"" . (($tillFrom == "FROM") ? "good\"" : "bad\"") . ">až ";
   }
   
@@ -166,7 +166,7 @@ function getTimeInMessage(DateTime $time, DateTime $regularTime, string $tillFro
   
   $lsResult .= getTimeString($time);
   
-  if($comparisonResult){
+  if($comparisonResult != 0){
     $lsResult .= "</span>";
   }
   
@@ -341,7 +341,7 @@ class Issues{
   }
   
   
-  public function getMessage(?string $separator = ", "){
+  public function getMessage(?string $separator = "; "){
     $ret = "";
     $i = 0;
     
@@ -385,33 +385,47 @@ class MonthShiftsListRecord{
 
   public function findIssues(MonthShiftsList $monthShiftsList): void{
     //WITHOUT_HANDOVER and WITHOUT_TAKEOVER issues
+    $previous_record = null;
+    $next_record = null;
+    $party_record = null;
+    
     if($this->shift->order == 2 || $this->shift->order == 3){
       if(($previousShift = $this->shift->createPreviousShift()) != null){  
         if(($previousRecord = $monthShiftsList->records[$previousShift->getKey()] ?? null) != null){
-          if(compareDateTimes($previousRecord->out, $this->in) == -1){
+          if(compareDateTimes($previousRecord->out, $this->in) < 0){
             $this->issues->add(new Issue(EIssueType::WITHOUT_TAKEOVER, "v " . getTimeString($this->in) . " bez převzetí"));
           }
         }
       }
       if(($nextShift = $this->shift->createNextShift()) != null){  
         if(($nextRecord = $monthShiftsList->records[$nextShift->getKey()] ?? null) != null){
-          if(compareDateTimes($this->out, $nextRecord->in) == -1){
+          if(compareDateTimes($this->out, $nextRecord->in) < 0){
             $this->issues->add(new Issue(EIssueType::WITHOUT_HANDOVER, "v " . getTimeString($this->out) . " bez předání"));
           }
         }
       }
     }
     
-    //GO_TO_GREEN issue
+    //GO_TO_GREEN & START_ON_GREEN issues
     if($this->shift->order == 2){
       if(($partyShift = $this->shift->createPartyShift()) != null){
-        if(($partyRecord = $monthShiftsList->records[$partyShift->getKey()] ?? null) != null){
-          if(compareDateTimes($partyRecord->out, $this->out) == -1){
-            
-            if($nextRecord != null){//it's already introduced and set in the block where WITHOUT_HANDOVER and WITHOUT_TAKEOVER issues are tested
-              if(compareDateTimes($nextRecord->in, $partyRecord->out) <= 0){
-                $this->issues->add(new Issue(EIssueType::GO_TO_GREEN, "až v " . getTimeString($nextRecord->in) . " přijde " . $nextRecord->personName . ", přesednout na zelenou"));
-              }
+        $partyRecord = $monthShiftsList->records[$partyShift->getKey()] ?? null;
+      }
+
+      if($nextRecord != null){
+        if(compareDateTimes($nextRecord->in, $this->out) < -HANDOVER_INTERVAL){
+          if($partyRecord != null){
+            if(compareDateTimes($partyRecord->out, $this->out) < -HANDOVER_INTERVAL){
+              $this->issues->add(new Issue(EIssueType::GO_TO_GREEN, "až v " . getTimeString($nextRecord->in) . " přijde " . $nextRecord->personName . ", přesednout na zelenou"));
+            }
+          }
+        }
+      }
+      if($previousRecord != null){
+        if(compareDateTimes($this->in, $previousRecord->out) < -HANDOVER_INTERVAL){
+          if($partyRecord != null){
+            if(compareDateTimes($this->in, $partyRecord->in) < -HANDOVER_INTERVAL){
+              $this->issues->add(new Issue(EIssueType::START_ON_GREEN, "začít, než příjde v " . getTimeString($partyRecord->in) . " " . $partyRecord->personName . ", na zelené"));
             }
           }
         }
