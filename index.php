@@ -535,11 +535,12 @@ class MonthShiftsList{
   }
 
 
-  public function getTable4Person(): string{
+  public function getTable4Person(int $personId): string{
     $ret = "<p>" . $this->personName . ":</p><table>";
     
     foreach($this->records as $record){
-      $ret .= $record->getTR(ETableDisplay::TR->value| ETableDisplay::DATE->value | ETableDisplay::ORDER->value | ETableDisplay::SHIFT_MESSAGE->value | ETableDisplay::NEIGHBOURHOOD->value);
+      if($record->shouldBeIncludedInTheList($personId, null))
+        $ret .= $record->getTR(ETableDisplay::TR->value| ETableDisplay::DATE->value | ETableDisplay::ORDER->value | ETableDisplay::SHIFT_MESSAGE->value | ETableDisplay::NEIGHBOURHOOD->value);
     }
     
     $ret .= "</table>";
@@ -635,7 +636,7 @@ else{
   if($selectedPersonId !== "") {
     $monthShiftsList = new MonthShiftsList($arrayMap, ($selectedPersonId == "") ? null : (int)$selectedPersonId, null);
   
-    echo $monthShiftsList->getTable4Person();
+    echo $monthShiftsList->getTable4Person((int)$selectedPersonId);
   }
   else{
     if($selectedDate <> "" && $selectedOrder <> ""){
