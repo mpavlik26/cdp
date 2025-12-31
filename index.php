@@ -497,6 +497,10 @@ class MonthShiftsListRecord{
     return $this->personId == $personId;
   } 
  
+ 
+  public function shouldBeIncludedInTheList(?int $personId = null, ?array $iaNeighbourhood = null): bool{
+    return ($iaNeighbourhood == null && ($personId == null || $this->isPerson($personId)) || ($iaNeighbourhood != null && $this->isInNeighbourhood($iaNeighbourhood)));
+  }
 }
 
 
@@ -594,7 +598,8 @@ class MonthShiftsList{
     foreach($arrayMap as $record){
       if($i > 0){
         $monthShiftsListRecord = new MonthShiftsListRecord($record);
-        if($iaNeighbourhood == null && ($personId == null || $monthShiftsListRecord->isPerson($personId)) || ($iaNeighbourhood != null && $monthShiftsListRecord->isInNeighbourhood($iaNeighbourhood)))
+        
+        if($monthShiftsListRecord->shouldBeIncludedInTheList($personId, $iaNeighbourhood))
           $this->records[$monthShiftsListRecord->getKey()] = $monthShiftsListRecord;
       }
       $i++;
@@ -618,6 +623,7 @@ class MonthShiftsList{
 
 $monthShiftsListUrl = 'https://docs.google.com/spreadsheets/d/1ysbi-0T4SiMJxXUC3TZRgq263Q7QJO73RvLUdl3s1Lk/export?format=csv&gid=303224713';
 $arrayMap = array_map('str_getcsv_26', file($monthShiftsListUrl));
+//print_r($arrayMap);
 
 if($selectedComplete == 1){
   $monthShiftsList = new MonthShiftsList($arrayMap, null, null);
