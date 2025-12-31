@@ -506,7 +506,6 @@ class MonthShiftsListRecord{
 
 class MonthShiftsList{
   public array $records = array(); //of MonthShiftsListRecord organized in an array with keys of string concatenation of date and order ("2026-01-01\\3"]
-  public string $personName = "";
   public array $dates = array(); //of MonthShiftsListRecord organized in a 2-dimensional array with keys of date string "2026-01-01" and orders (1-3)
   
   
@@ -536,7 +535,7 @@ class MonthShiftsList{
 
 
   public function getTable4Person(int $personId): string{
-    $ret = "<p>" . $this->personName . ":</p><table>";
+    $ret = "<p>" . $GLOBALS["names"][$personId] . ":</p><table>";
     
     foreach($this->records as $record){
       if($record->shouldBeIncludedInTheList($personId, null))
@@ -572,7 +571,6 @@ class MonthShiftsList{
   
   public function init(): void{
     $this->records = array();
-    $this->personName = "";
     $this->dates = array();
   }
   
@@ -592,7 +590,6 @@ class MonthShiftsList{
 
   public function initFromArrayMap(array $arrayMap, ?int $personId = null, ?array $iaNeighbourhood = null): void{
     $this->init();
-    $this->personName = ($personId == null) ? "" : $GLOBALS["names"][$personId];
     
     $i = 0;
     
@@ -634,7 +631,7 @@ if($selectedComplete == 1){
 }
 else{
   if($selectedPersonId !== "") {
-    $monthShiftsList = new MonthShiftsList($arrayMap, ($selectedPersonId == "") ? null : (int)$selectedPersonId, null);
+    $monthShiftsList = new MonthShiftsList($arrayMap, null, null);
   
     echo $monthShiftsList->getTable4Person((int)$selectedPersonId);
   }
