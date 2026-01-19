@@ -499,7 +499,13 @@ class MonthShiftsListRecord{
  
  
   public function shouldBeIncludedInTheList(?int $personId = null, ?array $iaNeighbourhood = null): bool{
-    return ($iaNeighbourhood == null && ($personId == null || $this->isPerson($personId)) || ($iaNeighbourhood != null && $this->isInNeighbourhood($iaNeighbourhood)));
+    return (
+      $iaNeighbourhood == null && (
+        $personId == null || $this->isPerson($personId)
+      ) || (
+        $iaNeighbourhood != null && $this->isInNeighbourhood($iaNeighbourhood)
+      )
+    );
   }
 }
 
