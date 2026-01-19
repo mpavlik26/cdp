@@ -184,6 +184,26 @@ function str_getcsv_26(string $line): array{
 }
 
 
+class DatesBetween{
+  public DateTime $from;
+  public DateTime $to;
+
+  
+  public function __construct(DateTime $from, DateTime $to){
+    $this->from = $from;
+    $this->to = $to;
+  }
+  
+  
+  public function isIn(DateTime $_date){
+    $fromTs = $this->from->getTimeStamp();
+    $toTs = (((clone ($this->to))->modify('+1 day'))->modify('-1 second'))->getTimeStamp();
+    $dateTs = $_date->getTimeStamp();
+    return ($dateTs >= $fromTs && $dateTs <= $toTs);
+  }
+}
+
+
 class Shift{
   public DateTime $_date;
   public int $order;
@@ -286,6 +306,11 @@ class Shift{
   
   public function isCurrent(): bool{
     return ($this->getKey() == ($GLOBALS["selectedDate"] . "\\" . $GLOBALS["selectedOrder"]));
+  }
+  
+  
+  public function isBetween(DatesBetween $datesBetween): bool{
+    return $datesBetween->isIn($this->_date);
   }
   
 
@@ -481,6 +506,11 @@ class MonthShiftsListRecord{
     return $ret;  
        
   }
+
+
+  public function isBetween(DatesBetween $datesBetween): bool{
+    return $this->shift->isBetween($datesBetween);
+  }
     
   
   public function isInNeighbourhood(array $iaNeighbourhood): bool{
@@ -498,7 +528,12 @@ class MonthShiftsListRecord{
   } 
  
  
-  public function shouldBeIncludedInTheList(?int $personId = null, ?array $iaNeighbourhood = null): bool{
+  public function shouldBeIncludedInTheList(?int $personId = null, ?array $iaNeighbourhood = null, ?DatesBetween $datesBetween = null): bool{
+    if($datesBetween != null){
+      if ($this->isBetween($datesBetween) == false)
+        return false;
+    }
+    
     return (
       $iaNeighbourhood == null && (
         $personId == null || $this->isPerson($personId)
@@ -513,6 +548,8 @@ class MonthShiftsListRecord{
 class MonthShiftsList{
   public array $records = array(); //of MonthShiftsListRecord organized in an array with keys of string concatenation of date and order ("2026-01-01\\3"]
   public array $dates = array(); //of MonthShiftsListRecord organized in a 2-dimensional array with keys of date string "2026-01-01" and orders (1-3)
+  
+  public DatesBetween $datesBetween;
   
   
   public function __construct(array $arrayMap, ?int $personId = null, ?array $iaNeighbourhood = null){
@@ -578,6 +615,7 @@ class MonthShiftsList{
   public function init(): void{
     $this->records = array();
     $this->dates = array();
+    $this->datesBetween = new DatesBetween(createDateTimeFromDateString("2026-01-01"), createDateTimeFromDateString("2026-01-31"));
   }
   
   
@@ -603,7 +641,7 @@ class MonthShiftsList{
       if($i > 0){
         $monthShiftsListRecord = new MonthShiftsListRecord($record);
         
-        if($monthShiftsListRecord->shouldBeIncludedInTheList($personId, $iaNeighbourhood))
+        if($monthShiftsListRecord->shouldBeIncludedInTheList($personId, $iaNeighbourhood, $this->datesBetween))
           $this->records[$monthShiftsListRecord->getKey()] = $monthShiftsListRecord;
       }
       $i++;
@@ -652,6 +690,7 @@ else{
     }
   }
 }
+
 ?>
 <hr/>
 <a href="/index.php" onclick="if (history.length > 1) history.back(); return false;">
