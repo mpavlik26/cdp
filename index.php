@@ -51,6 +51,7 @@ $names = [
     "6" => "Míra",
     "3" => "Pepík",
     "7" => "Tomáš",
+    "12" => "Veronika"
 ];
 
 $selectedPersonId = $_GET['personId'] ?? "";
@@ -109,6 +110,11 @@ function compareDateTimes(DateTime $dateTime1, DateTime $dateTime2): int{
 
 function createDateTimeFromDateString(string $dateString): DateTime{
   return DateTime::createFromFormat('Y-m-d H:i:s', ($dateString . " 00:00:00"), new DateTimeZone('UTC'));
+}
+
+
+function getCurrentDate(){
+  return createDateTimeFromDateString(getDateString(new DateTime()));  
 }
 
 
@@ -179,27 +185,65 @@ function getTimeString(DateTime $dateTime): string{
 }
 
 
+function str_getconfig_line(string $line){
+  return explode("=", $line);
+}
+
+
 function str_getcsv_26(string $line): array{
   return str_getcsv($line, ",", '"', "\\");
 }
 
 
+class Config{
+  public array $items = array();
+  
+
+  public function __construct(string $fileName){
+    $arrayMap = array_map('str_getconfig_line', file($fileName));
+    
+    foreach ($arrayMap as $configLine){
+      $this->items[$configLine[0]] = trim($configLine[1]);
+    }
+  }
+  
+  
+  public function getValue(string $isKey): ?string{
+    return array_key_exists($isKey, $this->items) ? $this->items[$isKey] : null;
+  }
+}
+
+
 class DatesBetween{
-  public DateTime $from;
-  public DateTime $to;
+  public ?DateTime $from = null;
+  public ?DateTime $to = null;
 
   
-  public function __construct(DateTime $from, DateTime $to){
-    $this->from = $from;
-    $this->to = $to;
+  public function __construct(Config $config){
+    if($configTo = $config->getValue("datesBetween_to")){
+      $this->to = createDateTimeFromDateString($configTo);
+    }
+    
+    if($configFromAutoDaysBeforeToday = $config->getValue("datesBetween_from_auto_days_before_today")){
+      $this->from = getCurrentDate()->modify("-" . $configFromAutoDaysBeforeToday . " day");
+    }
+    else{
+      if($configFrom = $config->getValue("datesBetween_from")){
+        $this->from = createDateTimeFromDateString($configFrom);
+      }
+    }
   }
   
   
   public function isIn(DateTime $_date){
-    $fromTs = $this->from->getTimeStamp();
-    $toTs = (((clone ($this->to))->modify('+1 day'))->modify('-1 second'))->getTimeStamp();
-    $dateTs = $_date->getTimeStamp();
-    return ($dateTs >= $fromTs && $dateTs <= $toTs);
+    if($this->from && $this->to){
+      $fromTs = $this->from->getTimeStamp();
+      $toTs = (((clone ($this->to))->modify('+1 day'))->modify('-1 second'))->getTimeStamp();
+      $dateTs = $_date->getTimeStamp();
+      return ($dateTs >= $fromTs && $dateTs <= $toTs);
+    }
+    else
+      return true;//if there's nothing set, we will not limit the result set displayed
   }
 }
 
@@ -615,7 +659,7 @@ class MonthShiftsList{
   public function init(): void{
     $this->records = array();
     $this->dates = array();
-    $this->datesBetween = new DatesBetween(createDateTimeFromDateString("2026-01-01"), createDateTimeFromDateString("2026-01-31"));
+    $this->datesBetween = new DatesBetween($GLOBALS["config"]);
   }
   
   
@@ -661,7 +705,7 @@ class MonthShiftsList{
 }
 
 
-
+$config = new Config("config.cfg");
 
 $monthShiftsListUrl = 'https://docs.google.com/spreadsheets/d/1ysbi-0T4SiMJxXUC3TZRgq263Q7QJO73RvLUdl3s1Lk/export?format=csv&gid=303224713';
 $arrayMap = array_map('str_getcsv_26', file($monthShiftsListUrl));
@@ -671,7 +715,7 @@ if($selectedComplete == 1){
   $monthShiftsList = new MonthShiftsList($arrayMap, null, null);
 
   echo $monthShiftsList->getTableGroupedByDate();
-  //echo $monthShiftsList->getTable();
+  //echo $monthShiftsList->getTable();  
 }
 else{
   if($selectedPersonId !== "") {
