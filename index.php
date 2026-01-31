@@ -34,7 +34,10 @@ header('Expires: 0');
     .current{
       background-color: #e6f2ff;
     }
-  }
+
+    .weekend{
+      background-color: #ffe7e9;
+    }
   </style>
 </head>
 <body>
@@ -118,6 +121,7 @@ function getCurrentDate(){
 }
 
 
+
 function getDateString(DateTime $dateTime): string{
   return $dateTime->format("Y-m-d");
 }
@@ -187,6 +191,20 @@ function getTimeString(DateTime $dateTime): string{
 
 function str_getconfig_line(string $line){
   return explode("=", $line);
+}
+
+
+function isCzechHoliday(DateTime $dateTime): bool{
+  $holidays2 = ["01-01", "05-01", "05-08", "07-05", "07-06", "09-28", "10-28", "11-17", "12-24", "12-25", "12-26"];  
+  $holidays3 = ["2026-04-03", "2026-04-06", "2027-03-26", "2027-03-29", "2028-04-14", "2028-04-17", "2029-03-30", "2029-04-02", "2030-04-19", "2030-04-22"];
+
+  return in_array($dateTime->format("Y-m-d"), $holidays3) || in_array($dateTime->format("m-d"), $holidays2);
+}
+
+
+function isInWeekend(DateTime $dateTime): bool{
+  $weekday = (int)$dateTime->format('N');
+  return ($weekday == 6 || $weekday == 7 || isCzechHoliday($dateTime));
 }
 
 
@@ -347,14 +365,19 @@ class Shift{
     }
   }
   
+
+  public function isBetween(DatesBetween $datesBetween): bool{
+    return $datesBetween->isIn($this->_date);
+  }
+  
   
   public function isCurrent(): bool{
     return ($this->getKey() == ($GLOBALS["selectedDate"] . "\\" . $GLOBALS["selectedOrder"]));
   }
   
-  
-  public function isBetween(DatesBetween $datesBetween): bool{
-    return $datesBetween->isIn($this->_date);
+
+  public function isInWeekend(): bool{
+    return isInWeekend($this->_date);
   }
   
 
@@ -531,7 +554,14 @@ class MonthShiftsListRecord{
 
   
   public function getTRTag(): string{
-    return "<tr". (($this->shift->isCurrent()) ? " class=\"current\"" : "") . ">";
+    return
+      "<tr".
+      (
+        ($this->shift->isCurrent())
+          ? " class=\"current\""
+          : ""
+      )
+      . ">";
   }
   
   
@@ -550,8 +580,8 @@ class MonthShiftsListRecord{
     return $ret;  
        
   }
-
-
+    
+  
   public function isBetween(DatesBetween $datesBetween): bool{
     return $this->shift->isBetween($datesBetween);
   }
@@ -595,7 +625,7 @@ class MonthShiftsList{
   
   public DatesBetween $datesBetween;
   
-  
+
   public function __construct(array $arrayMap, ?int $personId = null, ?array $iaNeighbourhood = null){
     $this->initFromArrayMap($arrayMap, $personId, $iaNeighbourhood);
   }
@@ -640,9 +670,11 @@ class MonthShiftsList{
     $ret .= "<tr><th>Datum</th><th colspan=\"2\">" . getCzechOrder(1) . "</th><th colspan=\"2\">" . getCzechOrder(2) . "</th><th colspan=\"2\">" . getCzechOrder(3) . "</tr>";
     
     foreach($this->dates as $date => $records){
-      $ret .= "<tr>";
+      $dateTime = createDateTimeFromDateString($date);
+
+      $ret .= "<tr" . (isInWeekend($dateTime) ? " class=\"weekend\"" : "") . ">";
       
-      $ret .= "<td><b>" . getCzechDateWithWeekdayString(createDateTimeFromDateString($date)) . "</b></td>";
+      $ret .= "<td><b>" . getCzechDateWithWeekdayString($dateTime) . "</b></td>";
       
       foreach($records as $record){
         $ret .= $record->getTR(ETableDisplay::NAME->value | ETableDisplay::SHIFT_MESSAGE->value);
@@ -715,7 +747,7 @@ if($selectedComplete == 1){
   $monthShiftsList = new MonthShiftsList($arrayMap, null, null);
 
   echo $monthShiftsList->getTableGroupedByDate();
-  //echo $monthShiftsList->getTable();  
+  //echo $monthShiftsList->getTable();
 }
 else{
   if($selectedPersonId !== "") {
@@ -734,7 +766,6 @@ else{
     }
   }
 }
-
 ?>
 <hr/>
 <a href="/index.php" onclick="if (history.length > 1) history.back(); return false;">
