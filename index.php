@@ -46,6 +46,7 @@ header('Expires: 0');
 $names = [
     "" => "",
     "5" => "Honza",
+    "15" => "Ivona",
     "1" => "Jana",
     "2" => "Jitka",
     "14" => "Káťa",
@@ -54,6 +55,7 @@ $names = [
     "8" => "Martin P.",
     "4" => "Martina",
     "6" => "Míra",
+    "16" => "Pavel B.",
     "3" => "Pepík",
     "7" => "Tomáš",
     "12" => "Veronika"
