@@ -46,6 +46,7 @@ header('Expires: 0');
 $names = [
     "" => "",
     "5" => "Honza",
+    "15" => "Ivona",
     "1" => "Jana",
     "2" => "Jitka",
     "14" => "Káťa",
@@ -54,6 +55,7 @@ $names = [
     "8" => "Martin P.",
     "4" => "Martina",
     "6" => "Míra",
+    "16" => "Pavel B.",
     "3" => "Pepík",
     "7" => "Tomáš",
     "12" => "Veronika"
@@ -154,8 +156,8 @@ function getCzechDateWithWeekdayString(DateTime $dt): string{
 
 function getCzechOrder(int $order): string{
   switch($order){
-    case 1: return "dlouhá";
-    case 2: return "krátká";
+    case 1: return "dlouhá (514)";
+    case 2: return "krátká (524)";
     case 3: return "noční";
   }
 }
@@ -510,7 +512,7 @@ class MonthShiftsListRecord{
         if(compareDateTimes($nextRecord->in, $this->out) < -HANDOVER_INTERVAL){
           if($partyRecord != null){
             if(compareDateTimes($partyRecord->out, $this->out) < -HANDOVER_INTERVAL){
-              $this->issues->add(new Issue(EIssueType::GO_TO_GREEN, "až v " . getTimeString($nextRecord->in) . " přijde " . $nextRecord->personName . ", přesednout na zelenou"));
+              $this->issues->add(new Issue(EIssueType::GO_TO_GREEN, "až v " . getTimeString($nextRecord->in) . " přijde " . $nextRecord->personName . ", přesednout na 514"));
             }
           }
         }
@@ -519,7 +521,7 @@ class MonthShiftsListRecord{
         if(compareDateTimes($this->in, $previousRecord->out) < -HANDOVER_INTERVAL){
           if($partyRecord != null){
             if(compareDateTimes($this->in, $partyRecord->in) < -HANDOVER_INTERVAL){
-              $this->issues->add(new Issue(EIssueType::START_ON_GREEN, "začít, než příjde v " . getTimeString($partyRecord->in) . " " . $partyRecord->personName . ", na zelené"));
+              $this->issues->add(new Issue(EIssueType::START_ON_GREEN, "začít, než příjde v " . getTimeString($partyRecord->in) . " " . $partyRecord->personName . ", na 514"));
             }
           }
         }
