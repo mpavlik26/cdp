@@ -112,6 +112,36 @@ header('Expires: 0');
       background: #ffe7e9;
     }
 
+    /* Sticky date column for person and handover views */
+    .table-sticky-date {
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    .table-sticky-date td {
+      border-top: none;
+      border-left: none;
+      border-right: 1px solid black;
+      border-bottom: 1px solid black;
+    }
+
+    .table-sticky-date tr:first-child td {
+      border-top: 1px solid black;
+    }
+
+    .table-sticky-date td:first-child {
+      position: sticky;
+      left: 0;
+      background: white;
+      border-left: 1px solid black;
+      font-weight: bold;
+      z-index: 1;
+    }
+
+    .table-sticky-date tr.current td:first-child {
+      background: #e6f2ff;
+    }
+
     form {
       display: flex;
       flex-wrap: wrap;
@@ -749,7 +779,7 @@ class MonthShiftsList{
   
 
   public function getTable(): string{
-    $ret = "<table>";
+    $ret = "<table class=\"table-sticky-date\">";
     
     foreach($this->records as $record){
       $ret .= $record->getTR(ETableDisplay::TR->value | ETableDisplay::DATE->value | ETableDisplay::ORDER->value | ETableDisplay::NAME->value | ETableDisplay::SHIFT_MESSAGE->value);
@@ -762,7 +792,7 @@ class MonthShiftsList{
 
 
   public function getTable4Person(int $personId): string{
-    $ret = "<p>" . $GLOBALS["names"][$personId] . ":</p><table>";
+    $ret = "<p>" . $GLOBALS["names"][$personId] . ":</p><table class=\"table-sticky-date\">";
     
     foreach($this->records as $record){
       if($record->shouldBeIncludedInTheList($personId, null))
