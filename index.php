@@ -55,6 +55,93 @@ header('Expires: 0');
       margin-bottom: 16px;
     }
 
+    /* Date-grid wrapper scrolls both axes so sticky works in both directions */
+    .table-wrapper--grid {
+      max-height: calc(100dvh - 140px);
+      overflow-y: auto;
+    }
+
+    /* border-collapse: separate fixes border rendering on sticky cells */
+    .table-date-grid {
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    /* One-sided borders to avoid doubling with border-spacing: 0 */
+    .table-date-grid th,
+    .table-date-grid td {
+      border-top: none;
+      border-left: none;
+      border-right: 1px solid black;
+      border-bottom: 1px solid black;
+    }
+
+    .table-date-grid th:first-child,
+    .table-date-grid td:first-child {
+      border-left: 1px solid black;
+    }
+
+    .table-date-grid tr:first-child th {
+      border-top: 1px solid black;
+    }
+
+    /* Sticky header row (locks on vertical scroll within wrapper) */
+    .table-date-grid th {
+      position: sticky;
+      top: 0;
+      background: white;
+      z-index: 2;
+    }
+
+    /* Sticky date column (locks on horizontal scroll) */
+    .table-date-grid td:first-child {
+      position: sticky;
+      left: 0;
+      background: white;
+      z-index: 1;
+    }
+
+    /* Corner cell must be above both */
+    .table-date-grid th:first-child {
+      left: 0;
+      z-index: 3;
+    }
+
+    /* Preserve row background on sticky date cells */
+    .table-date-grid tr.weekend td:first-child {
+      background: #ffe7e9;
+    }
+
+    /* Sticky date column for person and handover views */
+    .table-sticky-date {
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    .table-sticky-date td {
+      border-top: none;
+      border-left: none;
+      border-right: 1px solid black;
+      border-bottom: 1px solid black;
+    }
+
+    .table-sticky-date tr:first-child td {
+      border-top: 1px solid black;
+    }
+
+    .table-sticky-date td:first-child {
+      position: sticky;
+      left: 0;
+      background: white;
+      border-left: 1px solid black;
+      font-weight: bold;
+      z-index: 1;
+    }
+
+    .table-sticky-date tr.current td:first-child {
+      background: #e6f2ff;
+    }
+
     form {
       display: flex;
       flex-wrap: wrap;
@@ -692,7 +779,7 @@ class MonthShiftsList{
   
 
   public function getTable(): string{
-    $ret = "<table>";
+    $ret = "<table class=\"table-sticky-date\">";
     
     foreach($this->records as $record){
       $ret .= $record->getTR(ETableDisplay::TR->value | ETableDisplay::DATE->value | ETableDisplay::ORDER->value | ETableDisplay::NAME->value | ETableDisplay::SHIFT_MESSAGE->value);
@@ -705,7 +792,7 @@ class MonthShiftsList{
 
 
   public function getTable4Person(int $personId): string{
-    $ret = "<p>" . $GLOBALS["names"][$personId] . ":</p><table>";
+    $ret = "<p>" . $GLOBALS["names"][$personId] . ":</p><table class=\"table-sticky-date\">";
     
     foreach($this->records as $record){
       if($record->shouldBeIncludedInTheList($personId, null))
@@ -719,7 +806,7 @@ class MonthShiftsList{
   
   
   public function getTableGroupedByDate(): string{
-    $ret = "<table>";
+    $ret = "<table class=\"table-date-grid\">";
     $ret .= "<tr><th>Datum</th><th colspan=\"2\">" . getCzechOrder(1) . "</th><th colspan=\"2\">" . getCzechOrder(2) . "</th><th colspan=\"2\">" . getCzechOrder(3) . "</tr>";
     
     foreach($this->dates as $date => $records){
@@ -796,7 +883,7 @@ $monthShiftsListUrl = 'https://docs.google.com/spreadsheets/d/1ysbi-0T4SiMJxXUC3
 $arrayMap = array_map('str_getcsv_26', file($monthShiftsListUrl));
 //print_r($arrayMap);
 
-echo '<div class="table-wrapper">';
+echo '<div class="table-wrapper' . ($selectedComplete == 1 ? ' table-wrapper--grid' : '') . '">';
 
 if($selectedComplete == 1){
   $monthShiftsList = new MonthShiftsList($arrayMap, null, null);
