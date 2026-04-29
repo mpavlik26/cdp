@@ -55,6 +55,33 @@ header('Expires: 0');
       margin-bottom: 16px;
     }
 
+    /* Sticky header row (locks on vertical scroll) */
+    .table-date-grid th {
+      position: sticky;
+      top: 0;
+      background: white;
+      z-index: 2;
+    }
+
+    /* Sticky date column (locks on horizontal scroll) */
+    .table-date-grid td:first-child {
+      position: sticky;
+      left: 0;
+      background: white;
+      z-index: 1;
+    }
+
+    /* Corner cell must be above both */
+    .table-date-grid th:first-child {
+      left: 0;
+      z-index: 3;
+    }
+
+    /* Preserve row background on sticky date cells */
+    .table-date-grid tr.weekend td:first-child {
+      background: #ffe7e9;
+    }
+
     form {
       display: flex;
       flex-wrap: wrap;
@@ -719,7 +746,7 @@ class MonthShiftsList{
   
   
   public function getTableGroupedByDate(): string{
-    $ret = "<table>";
+    $ret = "<table class=\"table-date-grid\">";
     $ret .= "<tr><th>Datum</th><th colspan=\"2\">" . getCzechOrder(1) . "</th><th colspan=\"2\">" . getCzechOrder(2) . "</th><th colspan=\"2\">" . getCzechOrder(3) . "</tr>";
     
     foreach($this->dates as $date => $records){
