@@ -7,8 +7,18 @@ header('Expires: 0');
 <html>
 
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      padding: 12px;
+      font-size: 16px;
+    }
+
     table {
       border-collapse: collapse;
     }
@@ -17,26 +27,65 @@ header('Expires: 0');
       padding: 8px;
       text-align: center;
     }
-    
+
     .bad{
       color: red;
     }
-    
+
     .good{
       color: green;
     }
-    
+
     .issues{
       color: blue;
       font-style: italic;
     }
-    
+
     .current{
       background-color: #e6f2ff;
     }
 
     .weekend{
       background-color: #ffe7e9;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin-bottom: 16px;
+    }
+
+    form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    select, button {
+      font-size: 16px;
+      padding: 6px 10px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .nav-links a {
+      padding: 6px 0;
+    }
+
+    @media (max-width: 480px) {
+      select {
+        width: 100%;
+      }
+      form label {
+        width: 100%;
+      }
     }
   </style>
 </head>
@@ -747,37 +796,38 @@ $monthShiftsListUrl = 'https://docs.google.com/spreadsheets/d/1ysbi-0T4SiMJxXUC3
 $arrayMap = array_map('str_getcsv_26', file($monthShiftsListUrl));
 //print_r($arrayMap);
 
+echo '<div class="table-wrapper">';
+
 if($selectedComplete == 1){
   $monthShiftsList = new MonthShiftsList($arrayMap, null, null);
 
   echo $monthShiftsList->getTableGroupedByDate();
-  //echo $monthShiftsList->getTable();
 }
 else{
   if($selectedPersonId !== "") {
     $monthShiftsList = new MonthShiftsList($arrayMap, null, null);
-  
+
     echo $monthShiftsList->getTable4Person((int)$selectedPersonId);
   }
   else{
     if($selectedDate <> "" && $selectedOrder <> ""){
       $selectedShift = new Shift(createDateTimeFromDateString($selectedDate), $selectedOrder);
-      
+
       $neighbourhood = $selectedShift->createNeighbourhood(true);
-      $monthShiftsList = new MonthShiftsList($arrayMap, null, $neighbourhood);  
-      
+      $monthShiftsList = new MonthShiftsList($arrayMap, null, $neighbourhood);
+
       echo $monthShiftsList->getTable();
     }
   }
 }
+
+echo '</div>';
 ?>
 <hr/>
-<a href="/index.php" onclick="if (history.length > 1) history.back(); return false;">
-    ← zpět
-</a>
-&nbsp;&nbsp;
-<a href="index.php">Domů</a>
-&nbsp;&nbsp;
-<a href="index.php?complete=1">Kompletní směnář</a>
+<div class="nav-links">
+  <a href="/index.php" onclick="if (history.length > 1) history.back(); return false;">← zpět</a>
+  <a href="index.php">Domů</a>
+  <a href="index.php?complete=1">Kompletní směnář</a>
+</div>
 </body>
 </html>
