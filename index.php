@@ -55,7 +55,37 @@ header('Expires: 0');
       margin-bottom: 16px;
     }
 
-    /* Sticky header row (locks on vertical scroll) */
+    /* Date-grid wrapper scrolls both axes so sticky works in both directions */
+    .table-wrapper--grid {
+      max-height: calc(100dvh - 140px);
+      overflow-y: auto;
+    }
+
+    /* border-collapse: separate fixes border rendering on sticky cells */
+    .table-date-grid {
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    /* One-sided borders to avoid doubling with border-spacing: 0 */
+    .table-date-grid th,
+    .table-date-grid td {
+      border-top: none;
+      border-left: none;
+      border-right: 1px solid black;
+      border-bottom: 1px solid black;
+    }
+
+    .table-date-grid th:first-child,
+    .table-date-grid td:first-child {
+      border-left: 1px solid black;
+    }
+
+    .table-date-grid tr:first-child th {
+      border-top: 1px solid black;
+    }
+
+    /* Sticky header row (locks on vertical scroll within wrapper) */
     .table-date-grid th {
       position: sticky;
       top: 0;
@@ -823,7 +853,7 @@ $monthShiftsListUrl = 'https://docs.google.com/spreadsheets/d/1ysbi-0T4SiMJxXUC3
 $arrayMap = array_map('str_getcsv_26', file($monthShiftsListUrl));
 //print_r($arrayMap);
 
-echo '<div class="table-wrapper">';
+echo '<div class="table-wrapper' . ($selectedComplete == 1 ? ' table-wrapper--grid' : '') . '">';
 
 if($selectedComplete == 1){
   $monthShiftsList = new MonthShiftsList($arrayMap, null, null);
