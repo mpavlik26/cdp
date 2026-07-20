@@ -455,7 +455,7 @@ class MonthShiftsList{
 }
 
 
-function renderPrintHeaderBar(string $title, string $subtitle): string{
+function renderPrintHeaderBar(string $title, string $subtitle, string $backHref = 'index.php'): string{
   return '
   <div class="print-header no-print">
     <div>
@@ -463,7 +463,7 @@ function renderPrintHeaderBar(string $title, string $subtitle): string{
       <div class="print-subtitle">' . htmlspecialchars($subtitle) . '</div>
     </div>
     <div class="print-actions">
-      <a href="index.php">← Zpět do aplikace</a>
+      <a href="' . htmlspecialchars($backHref) . '">← Zpět do aplikace</a>
       <button onclick="window.print()">Vytisknout</button>
     </div>
   </div>';
@@ -527,8 +527,9 @@ function renderPrintComplete(array $model, string $rangeLabel): string{
 }
 
 
-function renderPrintWorker(array $model, string $personName, string $rangeLabel): string{
-  $html = renderPrintHeaderBar('Rozpis služeb — ' . $personName, 'tiskové zobrazení · ' . $rangeLabel);
+function renderPrintWorker(array $model, string $personName, string $rangeLabel, string $personId): string{
+  $backHref = 'index.php?person=' . urlencode($personId);
+  $html = renderPrintHeaderBar('Rozpis služeb — ' . $personName, 'tiskové zobrazení · ' . $rangeLabel, $backHref);
 
   $html .= '<table class="sheet"><thead><tr><th>Datum</th><th>Služba</th><th>Čas</th><th>Poznámky ke střídání</th></tr></thead><tbody>';
 
@@ -637,7 +638,7 @@ if ($printParam === 'worker'){
     exit;
   }
 
-  renderPrintPage(renderPrintWorker($model, $personNameParam, $rangeLabel));
+  renderPrintPage(renderPrintWorker($model, $personNameParam, $rangeLabel, $personIdParam));
   exit;
 }
 

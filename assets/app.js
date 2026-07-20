@@ -532,11 +532,12 @@
       + '<div class="matrix-day-header__num">' + h.n + '</div></div>'
     )).join('');
 
-    const rows = matrix.rows.map((row) => {
-      const nameCell = '<div class="matrix-name-cell"><button type="button" class="matrix-name-link" data-action="name-nav" data-person="'
-        + esc(row.name) + '">' + esc(row.name) + '</button></div>';
-      return nameCell + row.cells.map(renderMatrixCell).join('');
-    }).join('');
+    const nameCells = matrix.rows.map((row) => (
+      '<div class="matrix-name-cell"><button type="button" class="matrix-name-link" data-action="name-nav" data-person="'
+      + esc(row.name) + '">' + esc(row.name) + '</button></div>'
+    )).join('');
+
+    const dayRows = matrix.rows.map((row) => row.cells.map(renderMatrixCell).join('')).join('');
 
     return (
       '<div class="card">'
@@ -547,10 +548,11 @@
       + '</div>'
       + '<a class="print-link" href="index.php?print=complete" title="Úsporné zobrazení vhodné pro tisk">🖨 Tiskové zobrazení</a>'
       + '</div>'
-      + '<div class="matrix-scroll"><div class="matrix-grid" style="grid-template-columns: 150px repeat(' + n + ', 66px);">'
-      + '<div class="matrix-corner"></div>' + monthHeaders
-      + '<div class="matrix-worker-label">PRACOVNÍK</div>' + dayHeaders
-      + rows
+      + '<div class="matrix-scroll"><div class="matrix-panes">'
+      + '<div class="matrix-names-col"><div class="matrix-corner"></div><div class="matrix-worker-label">PRACOVNÍK</div>' + nameCells + '</div>'
+      + '<div class="matrix-days-scroll"><div class="matrix-grid" style="grid-template-columns: repeat(' + n + ', 66px);">'
+      + monthHeaders + dayHeaders + dayRows
+      + '</div></div>'
       + '</div></div>'
       + renderLegend('sm')
       + '</div>'

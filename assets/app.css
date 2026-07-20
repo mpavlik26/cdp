@@ -306,7 +306,7 @@ button { font-family: inherit; }
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -355,7 +355,7 @@ button { font-family: inherit; }
   align-items: center;
   justify-content: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -548,7 +548,27 @@ button { font-family: inherit; }
 
 .matrix-scroll {
   max-height: 70vh;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.matrix-panes {
+  display: flex;
+  align-items: flex-start;
+}
+
+.matrix-names-col {
+  flex: 0 0 150px;
+  width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.matrix-days-scroll {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
 }
 
 .matrix-grid {
@@ -559,8 +579,8 @@ button { font-family: inherit; }
 .matrix-corner {
   position: sticky;
   top: 0;
-  left: 0;
-  z-index: 9;
+  z-index: 3;
+  height: 37px;
   background: #F3F5F8;
 }
 
@@ -568,6 +588,7 @@ button { font-family: inherit; }
   position: sticky;
   top: 0;
   z-index: 6;
+  height: 37px;
   background: #1B2530;
   color: #fff;
   border-radius: 6px;
@@ -580,8 +601,8 @@ button { font-family: inherit; }
 .matrix-worker-label {
   position: sticky;
   top: 41px;
-  left: 0;
-  z-index: 8;
+  z-index: 3;
+  height: 49px;
   background: #1B2530;
   color: #fff;
   font-size: 13px;
@@ -598,6 +619,7 @@ button { font-family: inherit; }
   position: sticky;
   top: 41px;
   z-index: 6;
+  height: 49px;
   border-radius: 6px;
   padding: 5px 2px;
   text-align: center;
@@ -615,9 +637,7 @@ button { font-family: inherit; }
 }
 
 .matrix-name-cell {
-  position: sticky;
-  left: 0;
-  z-index: 4;
+  height: 60px;
   background: #fff;
   border: 1px solid #E2E7EC;
   border-radius: 6px;
@@ -687,7 +707,7 @@ button { font-family: inherit; }
 }
 
 .matrix-shift-row {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -705,7 +725,7 @@ button { font-family: inherit; }
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   gap: 2px;
 }
