@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    a { color: #2563EB; text-decoration: none; }
+    a:hover { color: #1E4FBF; }
+  </style>
+</helmet>
+
+<div style="min-height:100vh; background:#DCE1E7; font-family:'Source Sans 3', system-ui, sans-serif; color:#1B2530;">
+
+  <!-- App header + view switcher -->
+  <header style="background:#12181F; color:#fff;">
+    <div style="max-width:1240px; margin:0 auto; padding:18px 24px; display:flex; flex-wrap:wrap; align-items:center; gap:16px;">
+      <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:200px;">
+        <div style="width:40px; height:40px; border-radius:10px; background:#EB0037; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700;">S</div>
+        <div>
+          <div style="font-size:20px; font-weight:700; line-height:1.1;">Rozpis služeb</div>
+          <div style="font-size:13px; opacity:.65; font-weight:600;">červenec – srpen 2026</div>
+        </div>
+      </div>
+      <nav style="display:flex; gap:8px; background:#1F2831; padding:5px; border-radius:12px;">
+        <button onClick="{{ showCalendar }}" style="{{ tabCalStyle }}">Můj směnář</button>
+        <button onClick="{{ showMatrix }}" style="{{ tabMatStyle }}">Kompletní směnář</button>
+      </nav>
+    </div>
+  </header>
+
+  <main style="max-width:1240px; margin:0 auto; padding:28px 24px 56px;">
+
+    <!-- ============ VIEW 1 — MŮJ SMĚNÁŘ (kalendář + detail) ============ -->
+    <sc-if value="{{ isCalendar }}" hint-placeholder-val="{{ true }}">
+      <div style="background:#F3F5F8; border:1px solid #CDD5DE; border-radius:18px; overflow:hidden;">
+        <div style="background:#1B2530; color:#fff; padding:18px 22px; display:flex; flex-wrap:wrap; align-items:center; gap:16px;">
+          <label style="display:flex; flex-direction:column; gap:5px;">
+            <span style="font-size:13px; font-weight:700; opacity:.8; letter-spacing:.04em;">Vyberte pracovníka</span>
+            <select value="{{ person }}" onChange="{{ onPerson }}" style="font-family:inherit; font-size:18px; font-weight:700; padding:11px 16px; border-radius:10px; border:2px solid #3A4655; background:#fff; color:#1B2530; min-width:220px; cursor:pointer;">
+              <sc-for list="{{ people }}" as="p" hint-placeholder-count="16">
+                <option value="{{ p.name }}" selected="{{ p.sel }}">{{ p.name }}</option>
+              </sc-for>
+            </select>
+          </label>
+          <div style="flex:1; min-width:180px;">
+            <div style="font-size:13px; letter-spacing:.14em; opacity:.7; font-weight:700;">MŮJ SMĚNÁŘ · KALENDÁŘ</div>
+            <div style="font-size:22px; font-weight:700; margin-top:2px;">{{ person }} · červenec – srpen 2026</div>
+          </div>
+          <a href="{{ printHref }}" title="Úsporné zobrazení vhodné pro tisk" style="text-decoration:none; font-size:14px; font-weight:700; color:#fff; padding:9px 14px; border-radius:9px; border:1px solid #4A5A6B; white-space:nowrap;">🖨 Tiskové zobrazení</a>
+        </div>
+
+        <div style="padding:18px; overflow-x:auto;">
+          <div style="min-width:760px;">
+            <div style="position:sticky; top:0; z-index:5; display:grid; grid-template-columns:84px repeat(7, 1fr); gap:6px; margin-bottom:6px; background:#F3F5F8; padding-bottom:2px;">
+              <div style="position:sticky; left:0; z-index:6; background:#F3F5F8;"></div>
+              <sc-for list="{{ weekdays }}" as="w" hint-placeholder-count="7">
+                <div style="text-align:center; padding:6px 0; font-size:13px; font-weight:700; letter-spacing:.06em; color:{{ w.hdColor }}; background:{{ w.hdBg }}; border-radius:7px;">{{ w.d }}</div>
+              </sc-for>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <sc-for list="{{ calendar.weeks }}" as="week" hint-placeholder-count="6">
+                <div style="display:grid; grid-template-columns:84px repeat(7, 1fr); gap:6px;">
+                  <div style="position:sticky; left:0; z-index:4; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#EEF1F5; border:1px solid #E2E7EC; border-radius:8px; padding:4px;">
+                    <span style="font-size:14px; font-weight:700; color:#1B2530; text-align:center; line-height:1.15;">{{ week.label }}</span>
+                    <span style="font-size:11px; font-weight:700; color:#8A96A2;">{{ week.sub }}</span>
+                  </div>
+                  <sc-for list="{{ week.days }}" as="cell" hint-placeholder-count="7">
+                    <div onClick="{{ cell.onClickCell }}" style="position:relative; min-height:88px; border-radius:8px; border:{{ cell.cellBorder }}; outline:{{ cell.selRing }}; outline-offset:2px; overflow:hidden; background:{{ cell.baseBg }}; cursor:{{ cell.cursor }};">
+                      <sc-if value="{{ cell.selected }}" hint-placeholder-val="{{ false }}">
+                        <span style="position:absolute; {{ cell.labelPos }} right:7px; z-index:3; font-size:10px; font-weight:700; letter-spacing:.06em; color:#fff; background:#1B2530; padding:2px 7px; border-radius:999px;">DETAIL ↓</span>
+                      </sc-if>
+                      <sc-if value="{{ cell.showNum }}" hint-placeholder-val="{{ true }}">
+                        <span style="position:absolute; top:4px; left:7px; z-index:2; font-size:13px; font-weight:700; color:#6B7684;">{{ cell.num }}</span>
+                      </sc-if>
+                      <sc-if value="{{ cell.firstOfMonth }}" hint-placeholder-val="{{ false }}">
+                        <span style="position:absolute; top:4px; right:6px; z-index:2; font-size:9px; font-weight:700; color:#1B2530; background:#FFE08A; padding:1px 5px; border-radius:4px;">{{ cell.monthShort }}</span>
+                      </sc-if>
+                      <sc-if value="{{ cell.isDay }}" hint-placeholder-val="{{ false }}">
+                        <div style="position:absolute; left:0; top:0; bottom:0; width:4px; background:{{ cell.accentBar }};"></div>
+                        <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;">
+                          <div style="display:flex; align-items:center; gap:3px;"><sc-if value="{{ cell.pre514 }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px; font-weight:700; color:#C0223F; background:#fff; border:1px solid #E6A3AE; padding:0 3px; border-radius:3px;">514</span></sc-if><sc-if value="{{ cell.preNo }}" hint-placeholder-val="{{ false }}"><span style="position:relative; display:inline-block; width:13px; height:13px; border:2px solid #C0223F; border-radius:50%; vertical-align:middle; flex-shrink:0;"><span style="position:absolute; left:-1px; right:-1px; top:50%; height:2px; background:#C0223F; transform:translateY(-50%) rotate(-45deg);"></span></span></sc-if><span style="font-size:16px; font-weight:700; color:{{ cell.startColor }};">{{ cell.startTime }}</span></div>
+                          <div style="display:flex; align-items:center; gap:3px;"><span style="font-size:16px; font-weight:700; color:{{ cell.endColor }};">{{ cell.endTime }}</span><sc-if value="{{ cell.post514 }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px; font-weight:700; color:#C0223F; background:#fff; border:1px solid #E6A3AE; padding:0 3px; border-radius:3px;">514</span></sc-if><sc-if value="{{ cell.postNo }}" hint-placeholder-val="{{ false }}"><span style="position:relative; display:inline-block; width:13px; height:13px; border:2px solid #C0223F; border-radius:50%; vertical-align:middle; flex-shrink:0;"><span style="position:absolute; left:-1px; right:-1px; top:50%; height:2px; background:#C0223F; transform:translateY(-50%) rotate(-45deg);"></span></span></sc-if></div>
+                        </div>
+                      </sc-if>
+                      <sc-if value="{{ cell.hasEndPrev }}" hint-placeholder-val="{{ false }}">
+                        <div style="position:absolute; top:0; left:0; right:0; height:50%; background:{{ cell.nBg }}; border-left:4px solid {{ cell.nAccent }}; border-bottom:2px solid #F3F5F8; display:flex; align-items:center; justify-content:center;">
+                          <span style="display:flex; align-items:center; gap:3px;"><span style="font-size:15px; font-weight:700; color:{{ cell.endPrevColor }};">{{ cell.endPrevTime }}</span><sc-if value="{{ cell.endPrevNo }}" hint-placeholder-val="{{ false }}"><span style="position:relative; display:inline-block; width:13px; height:13px; border:2px solid #C0223F; border-radius:50%; vertical-align:middle; flex-shrink:0;"><span style="position:absolute; left:-1px; right:-1px; top:50%; height:2px; background:#C0223F; transform:translateY(-50%) rotate(-45deg);"></span></span></sc-if></span>
+                        </div>
+                      </sc-if>
+                      <sc-if value="{{ cell.isNight }}" hint-placeholder-val="{{ false }}">
+                        <div style="position:absolute; bottom:0; left:0; right:0; height:50%; background:{{ cell.nBg }}; border-left:4px solid {{ cell.nAccent }}; display:flex; align-items:center; justify-content:center;">
+                          <span style="display:flex; align-items:center; gap:3px;"><sc-if value="{{ cell.nightPreNo }}" hint-placeholder-val="{{ false }}"><span style="position:relative; display:inline-block; width:13px; height:13px; border:2px solid #C0223F; border-radius:50%; vertical-align:middle; flex-shrink:0;"><span style="position:absolute; left:-1px; right:-1px; top:50%; height:2px; background:#C0223F; transform:translateY(-50%) rotate(-45deg);"></span></span></sc-if><span style="font-size:15px; font-weight:700; color:{{ cell.startColor }};">{{ cell.startTime }}</span></span>
+                        </div>
+                      </sc-if>
+                      <sc-if value="{{ cell.empty }}" hint-placeholder-val="{{ false }}">
+                        <div style="position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center; padding-bottom:8px;">
+                          <span style="font-size:14px; color:#CDD5DE;">volno</span>
+                        </div>
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="display:flex; gap:18px; padding:14px 4px 2px; font-size:13px; color:#5B6672; flex-wrap:wrap; align-items:center;">
+              <span style="font-weight:700; color:#1B2530;">Legenda:</span>
+              <span style="display:flex; align-items:center; gap:6px;"><span style="width:14px; height:11px; border-radius:3px; background:#FBE1E5; border-left:3px solid #E0224B;"></span>dlouhá 514</span>
+              <span style="display:flex; align-items:center; gap:6px;"><span style="width:14px; height:11px; border-radius:3px; background:#ECEFF2; border-left:3px solid #8A96A2;"></span>krátká 524</span>
+              <span style="display:flex; align-items:center; gap:6px;"><span style="width:14px; height:11px; border-radius:3px; background:#ECEFF2; border-left:3px solid #8A96A2;"></span>noční (dole nástup <b>→</b>, nahoře ranní odchod <b>→</b>)</span>
+              <span style="display:flex; align-items:center; gap:6px;"><span style="font-size:11px; font-weight:700; color:#C0223F; background:#fff; border:1px solid #E6A3AE; padding:0 3px; border-radius:3px;">514</span> začátek/konec na sousedním postu 514</span>
+              <span style="display:flex; align-items:center; gap:6px;"><span style="position:relative; display:inline-block; width:14px; height:14px; border:2px solid #C0223F; border-radius:50%; vertical-align:middle; flex-shrink:0;"><span style="position:absolute; left:-1px; right:-1px; top:50%; height:2px; background:#C0223F; transform:translateY(-50%) rotate(-45deg);"></span></span> bez předávky / bez převzetí (mezičas kryje 514)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- handover detail -->
+        <div style="border-top:1px solid #E2E7EC; background:#EEF1F5; padding:18px 22px;">
+          <div style="font-size:13px; font-weight:700; letter-spacing:.1em; color:#8A96A2; margin:0 0 12px;">DETAIL STŘÍDÁNÍ</div>
+          <sc-if value="{{ hasDetail }}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid; grid-template-columns:minmax(240px, 340px) 1fr; gap:16px; align-items:start;">
+              <div style="background:#fff; border:1px solid #E2E7EC; border-left:6px solid {{ detail.me.color }}; border-radius:14px; overflow:hidden;">
+                <div style="padding:16px 18px; background:{{ detail.me.bg }};">
+                  <div style="font-size:14px; font-weight:700; color:#5B6672; text-transform:capitalize;">{{ detail.weekday }} · {{ detail.dateStr }}</div>
+                  <div style="display:flex; align-items:baseline; gap:10px; margin-top:3px; flex-wrap:wrap;">
+                    <span style="font-size:24px; font-weight:700; color:{{ detail.me.color }};">{{ detail.me.label }}</span>
+                    <span style="font-size:19px; font-weight:700; color:#1B2530;">{{ detail.me.timesStr }}</span>
+                  </div>
+                </div>
+                <div style="padding:12px 18px; font-size:14px; color:#5B6672; line-height:1.5;">Tvoje směna. Níže vidíš, koho střídáš, s kým jsi ve službě a komu ji předáváš.</div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
+                <div style="background:#fff; border:1px solid #E2E7EC; border-radius:14px; padding:14px 16px;">
+                  <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+                    <span style="font-size:12px; font-weight:700; letter-spacing:.06em; color:#0E7C66; background:#DCF2EB; padding:4px 10px; border-radius:999px;">↓ PŘEBÍRÁŠ</span>
+                    <span style="font-size:14px; font-weight:700; color:#5B6672;">{{ detail.takeover.when }} · {{ detail.takeover.time }}</span>
+                  </div>
+                  <sc-if value="{{ detail.takeover.hasNote }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex; gap:8px; align-items:flex-start; padding:10px 12px; margin-bottom:10px; border-radius:10px; background:{{ detail.takeover.noteBg }}; border:1px solid {{ detail.takeover.noteBorder }};">
+                      <sc-if value="{{ detail.takeover.noteWarn }}" hint-placeholder-val="{{ false }}"><span style="position:relative; display:inline-block; width:18px; height:18px; border:2px solid #C0223F; border-radius:50%; flex-shrink:0;"><span style="position:absolute; left:-1px; right:-1px; top:50%; height:2px; background:#C0223F; transform:translateY(-50%) rotate(-45deg);"></span></span></sc-if><sc-if value="{{ detail.takeover.noteMove }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; font-weight:700; color:{{ detail.takeover.noteFg }}; background:#fff; border:1px solid {{ detail.takeover.noteBorder }}; padding:1px 5px; border-radius:4px; flex-shrink:0;">{{ detail.takeover.noteIcon }}</span></sc-if>
+                      <span style="font-size:14px; font-weight:700; color:{{ detail.takeover.noteFg }}; line-height:1.4;">{{ detail.takeover.note }}</span>
+                    </div>
+                  </sc-if>
+                  <div style="display:flex; flex-direction:column; gap:8px;">
+                    <sc-for list="{{ detail.takeover.people }}" as="pp" hint-placeholder-count="2">
+                      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; padding:10px 12px; border:1px solid #E2E7EC; border-left:5px solid {{ pp.color }}; border-radius:10px; background:{{ pp.bg }};">
+                        <span style="font-size:18px; font-weight:700; color:#1B2530;">{{ pp.name }}</span>
+                        <span style="margin-left:auto; font-size:13px; font-weight:700; color:{{ pp.color }};">{{ pp.role }}</span>
+                        <span style="width:100%; font-size:16px; font-weight:700; margin-top:5px;"><span style="color:{{ pp.startColor }};">{{ pp.startStr }}</span><span style="color:#9AA6B2;"> {{ pp.sep }} </span><span style="color:{{ pp.endColor }};">{{ pp.endStr }}</span></span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+
+                <sc-if value="{{ detail.alongside.show }}" hint-placeholder-val="{{ false }}">
+                  <div style="background:#fff; border:1px solid #E2E7EC; border-radius:14px; padding:14px 16px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                      <span style="font-size:12px; font-weight:700; letter-spacing:.06em; color:#1B5FBF; background:#E1ECFC; padding:4px 10px; border-radius:999px;">↔ SPOLU VE SLUŽBĚ</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                      <sc-for list="{{ detail.alongside.people }}" as="pp" hint-placeholder-count="1">
+                        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; padding:10px 12px; border:1px solid #E2E7EC; border-left:5px solid {{ pp.color }}; border-radius:10px; background:{{ pp.bg }};">
+                          <span style="font-size:18px; font-weight:700; color:#1B2530;">{{ pp.name }}</span>
+                          <span style="margin-left:auto; font-size:13px; font-weight:700; color:{{ pp.color }};">{{ pp.role }}</span>
+                          <span style="width:100%; font-size:16px; font-weight:700; margin-top:5px;"><span style="color:{{ pp.startColor }};">{{ pp.startStr }}</span><span style="color:#9AA6B2;"> {{ pp.sep }} </span><span style="color:{{ pp.endColor }};">{{ pp.endStr }}</span></span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <div style="background:#fff; border:1px solid #E2E7EC; border-radius:14px; padding:14px 16px;">
+                  <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+                    <span style="font-size:12px; font-weight:700; letter-spacing:.06em; color:#9A5B00; background:#FBEAD0; padding:4px 10px; border-radius:999px;">↑ PŘEDÁVÁŠ</span>
+                    <span style="font-size:14px; font-weight:700; color:#5B6672;">{{ detail.handoff.when }} · {{ detail.handoff.time }}</span>
+                  </div>
+                  <sc-if value="{{ detail.handoff.hasNote }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex; gap:8px; align-items:flex-start; padding:10px 12px; margin-bottom:10px; border-radius:10px; background:{{ detail.handoff.noteBg }}; border:1px solid {{ detail.handoff.noteBorder }};">
+                      <sc-if value="{{ detail.handoff.noteWarn }}" hint-placeholder-val="{{ false }}"><span style="position:relative; display:inline-block; width:18px; height:18px; border:2px solid #C0223F; border-radius:50%; flex-shrink:0;"><span style="position:absolute; left:-1px; right:-1px; top:50%; height:2px; background:#C0223F; transform:translateY(-50%) rotate(-45deg);"></span></span></sc-if><sc-if value="{{ detail.handoff.noteMove }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; font-weight:700; color:{{ detail.handoff.noteFg }}; background:#fff; border:1px solid {{ detail.handoff.noteBorder }}; padding:1px 5px; border-radius:4px; flex-shrink:0;">{{ detail.handoff.noteIcon }}</span></sc-if>
+                      <span style="font-size:14px; font-weight:700; color:{{ detail.handoff.noteFg }}; line-height:1.4;">{{ detail.handoff.note }}</span>
+                    </div>
+                  </sc-if>
+                  <div style="display:flex; flex-direction:column; gap:8px;">
+                    <sc-for list="{{ detail.handoff.people }}" as="pp" hint-placeholder-count="2">
+                      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; padding:10px 12px; border:1px solid #E2E7EC; border-left:5px solid {{ pp.color }}; border-radius:10px; background:{{ pp.bg }};">
+                        <span style="font-size:18px; font-weight:700; color:#1B2530;">{{ pp.name }}</span>
+                        <span style="margin-left:auto; font-size:13px; font-weight:700; color:{{ pp.color }};">{{ pp.role }}</span>
+                        <span style="width:100%; font-size:16px; font-weight:700; margin-top:5px;"><span style="color:{{ pp.startColor }};">{{ pp.startStr }}</span><span style="color:#9AA6B2;"> {{ pp.sep }} </span><span style="color:{{ pp.endColor }};">{{ pp.endStr }}</span></span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ noDetail }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:20px; text-align:center; color:#8A96A2; font-size:16px;">Klikněte na směnu v kalendáři výše a zobrazí se detail střídání.</div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ============ VIEW 2 — KOMPLETNÍ SMĚNÁŘ (matice) ============ -->
+    <sc-if value="{{ isMatrix }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#F3F5F8; border:1px solid #CDD5DE; border-radius:18px; overflow:hidden;">
+        <div style="background:#1B2530; color:#fff; padding:16px 20px; display:flex; flex-wrap:wrap; align-items:center; gap:12px;">
+          <div style="flex:1; min-width:180px;">
+            <div style="font-size:13px; letter-spacing:.14em; opacity:.7; font-weight:700;">KOMPLETNÍ SMĚNÁŘ</div>
+            <div style="font-size:20px; font-weight:700; margin-top:2px;">Kdo, kdy a jak dlouho — všichni pracovníci</div>
+          </div>
+          <a href="{{ printHref }}" title="Úsporné zobrazení vhodné pro tisk" style="text-decoration:none; font-size:14px; font-weight:700; color:#fff; padding:9px 14px; border-radius:9px; border:1px solid #4A5A6B; white-space:nowrap;">🖨 Tiskové zobrazení</a>
+        </div>
+
+        <div style="padding:16px; overflow:auto; max-height:70vh;">
+          <div style="display:grid; grid-template-columns:150px repeat(62, 66px); gap:4px; min-width:min-content;">
+
+            <div style="position:sticky; left:0; top:0; z-index:8; background:#F3F5F8; margin-right:-4px; margin-bottom:-4px;"></div>
+            <sc-for list="{{ matrix.months }}" as="mo" hint-placeholder-count="2">
+              <div style="position:sticky; top:0; z-index:6; grid-column: span {{ mo.span }}; text-align:center; padding:7px 0; margin-bottom:-4px; background:#1B2530; color:#fff; border-radius:6px; font-size:15px; font-weight:700; letter-spacing:.04em;">{{ mo.label }}</div>
+            </sc-for>
+
+            <div style="position:sticky; left:0; top:41px; z-index:8; background:#1B2530; color:#fff; border-radius:6px; display:flex; align-items:center; padding:0 12px; margin-right:-4px; margin-bottom:-4px; font-size:12px; font-weight:700; letter-spacing:.06em;">PRACOVNÍK</div>
+            <sc-for list="{{ matrix.header }}" as="h" hint-placeholder-count="62">
+              <div style="position:sticky; top:41px; z-index:6; text-align:center; padding:3px 0; margin-bottom:-4px; border-radius:7px; background:{{ h.bg }}; border:{{ h.ring }}; border-left:{{ h.borderLeft }};">
+                <div style="font-size:10px; font-weight:700; color:#8A96A2; text-transform:uppercase;">{{ h.dow }}</div>
+                <div style="font-size:15px; font-weight:700;">{{ h.n }}</div>
+              </div>
+            </sc-for>
+
+            <sc-for list="{{ matrix.rows }}" as="row" hint-placeholder-count="16">
+              <div style="position:sticky; left:0; z-index:2; background:#fff; display:flex; align-items:center; gap:6px; padding:0 12px; margin-right:-4px; border-radius:6px; border:1px solid #E2E7EC;">
+                <span onClick="{{ row.onName }}" title="Zobrazit směnář pracovníka" style="font-size:14px; font-weight:700; color:#1E4FBF; cursor:pointer; text-decoration:underline; text-underline-offset:2px;">{{ row.name }}</span>
+              </div>
+              <sc-for list="{{ row.cells }}" as="cell" hint-placeholder-count="62">
+                <div style="position:relative; height:60px; border-radius:6px; border-top:1px solid #E9EDF1; border-right:1px solid #E9EDF1; border-bottom:1px solid #E9EDF1; border-left:{{ cell.outerBorderLeft }}; outline:{{ cell.outline }}; outline-offset:-2px; overflow:hidden; background:{{ cell.baseBg }};">
+                  <sc-if value="{{ cell.isDay }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute; left:0; top:0; bottom:0; width:3px; background:{{ cell.accentBar }};"></div>
+                    <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;">
+                      <div style="display:flex; align-items:center; gap:2px;"><sc-if value="{{ cell.pre514 }}" hint-placeholder-val="{{ false }}"><span style="font-size:8px; font-weight:700; color:#C0223F; background:#fff; border:1px solid #E6A3AE; padding:0 3px; border-radius:3px;">514</span></sc-if><sc-if value="{{ cell.preNo }}" hint-placeholder-val="{{ false }}"><span style="position:relative; display:inline-block; width:11px; height:11px; border:2px solid #C0223F; border-radius:50%; vertical-align:middle; flex-shrink:0;"><span style="position:absolute; left:-1px; right:-1px; top:50%; height:2px; background:#C0223F; transform:translateY(-50%) rotate(-45deg);"></span></span></sc-if><span style="font-size:13px; font-weight:700; color:{{ cell.startColor }};">{{ cell.startTime }}</span></div>
+                      <div style="display:flex; align-items:center; gap:2px;"><span style="font-size:13px; font-weight:700; color:{{ cell.endColor }};">{{ cell.endTime }}</span><sc-if value="{{ cell.post514 }}" hint-placeholder-val="{{ false }}"><span style="font-size:8px; font-weight:700; color:#C0223F; background:#fff; border:1px solid #E6A3AE; padding:0 3px; border-radius:3px;">514</span></sc-if><sc-if value="{{ cell.postNo }}" hint-placeholder-val="{{ false }}"><span style="position:relative; display:inline-block; width:11px; height:11px; border:2px solid #C0223F; border-radius:50%; vertical-align:middle; flex-shrink:0;"><span style="position:absolute; left:-1px; right:-1px; top:50%; height:2px; background:#C0223F; transform:translateY(-50%) rotate(-45deg);"></span></span></sc-if></div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ cell.hasEndPrev }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute; top:0; left:0; right:0; height:50%; background:{{ cell.nBg }}; border-left:3px solid {{ cell.nAccent }}; border-bottom:2px solid #F3F5F8; display:flex; align-items:center; justify-content:center;">
+                      <span style="display:flex; align-items:center; gap:2px;"><span style="font-size:12px; font-weight:700; color:{{ cell.endPrevColor }};">{{ cell.endPrevTime }}</span><sc-if value="{{ cell.endPrevNo }}" hint-placeholder-val="{{ false }}"><span style="position:relative; display:inline-block; width:11px; height:11px; border:2px solid #C0223F; border-radius:50%; vertical-align:middle; flex-shrink:0;"><span style="position:absolute; left:-1px; right:-1px; top:50%; height:2px; background:#C0223F; transform:translateY(-50%) rotate(-45deg);"></span></span></sc-if></span>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ cell.isNight }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute; bottom:0; left:0; right:0; height:50%; background:{{ cell.nBg }}; border-left:3px solid {{ cell.nAccent }}; display:flex; align-items:center; justify-content:center;">
+                      <span style="display:flex; align-items:center; gap:2px;"><sc-if value="{{ cell.nightPreNo }}" hint-placeholder-val="{{ false }}"><span style="position:relative; display:inline-block; width:11px; height:11px; border:2px solid #C0223F; border-radius:50%; vertical-align:middle; flex-shrink:0;"><span style="position:absolute; left:-1px; right:-1px; top:50%; height:2px; background:#C0223F; transform:translateY(-50%) rotate(-45deg);"></span></span></sc-if><span style="font-size:12px; font-weight:700; color:{{ cell.startColor }};">{{ cell.startTime }}</span></span>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ cell.empty }}" hint-placeholder-val="{{ true }}">
+                    <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">
+                      <span style="font-size:13px; color:#CDD5DE;">·</span>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </sc-for>
+
+          </div>
+        </div>
+
+        <div style="display:flex; gap:20px; padding:4px 20px 18px; font-size:13px; color:#5B6672; flex-wrap:wrap; align-items:center;">
+          <span style="font-weight:700; color:#1B2530;">Legenda:</span>
+          <span style="display:flex; align-items:center; gap:6px;"><span style="width:14px; height:11px; border-radius:3px; background:#FBE1E5; border-left:3px solid #E0224B;"></span>dlouhá 514</span>
+          <span style="display:flex; align-items:center; gap:6px;"><span style="width:14px; height:11px; border-radius:3px; background:#ECEFF2; border-left:3px solid #8A96A2;"></span>krátká 524</span>
+          <span style="display:flex; align-items:center; gap:6px;"><span style="width:14px; height:11px; border-radius:3px; background:#ECEFF2; border-left:3px solid #8A96A2;"></span>noční</span>
+          <span style="display:flex; align-items:center; gap:6px;"><span style="font-size:11px; font-weight:700; color:#C0223F; background:#fff; border:1px solid #E6A3AE; padding:0 3px; border-radius:3px;">514</span> začátek/konec na 514</span>
+          <span style="display:flex; align-items:center; gap:6px;"><span style="position:relative; display:inline-block; width:14px; height:14px; border:2px solid #C0223F; border-radius:50%; vertical-align:middle; flex-shrink:0;"><span style="position:absolute; left:-1px; right:-1px; top:50%; height:2px; background:#C0223F; transform:translateY(-50%) rotate(-45deg);"></span></span> bez předávky / převzetí</span>
+          <span><b>19:00 →</b> nástup večer (pokračuje do dalšího dne) &nbsp;·&nbsp; <b>→ 7:30</b> ranní odchod (z předchozí noční)</span>
+          <span style="display:flex; align-items:center; gap:6px;"><span style="color:#C43331; font-weight:700;">červená</span> delší &nbsp; <span style="color:#1B7F3B; font-weight:700;">zelená</span> kratší</span>
+        </div>
+      </div>
+    </sc-if>
+
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.model = this.build();
+    this.state = { view: 'calendar', person: 'Ivona', selId: null };
+  }
+  pad(n) { return String(n).padStart(2, '0'); }
+  fmt(m) { m = ((m % 1440) + 1440) % 1440; return Math.floor(m / 60) + ':' + this.pad(m % 60); }
+
+  build() {
+    const GOOD = '#1B7F3B', BAD = '#C43331', INK = '#1B2530';
+    const names = ['Honza','Ivona','Jana','Jitka','Káťa','Kuba','Lucka','Martin J.','Martin P.','Martina','Míra','Pavel B.','Pavol F.','Pepík','Tomáš','Veronika'];
+    const SH = [
+      { key: 'd', s: 420, e: 1140 },
+      { key: 'k', s: 420, e: 1140 },
+      { key: 'n', s: 1140, e: 420 }
+    ];
+    const cz = ['neděle','pondělí','úterý','středa','čtvrtek','pátek','sobota'];
+    const czS = ['ne','po','út','st','čt','pá','so'];
+
+    const mk = (person, sMin, eMin, sf, ef) => {
+      const hasBad = sf === 'bad' || ef === 'bad';
+      const hasGood = !hasBad && (sf === 'good' || ef === 'good');
+      return {
+        person, s: sMin, e: eMin, preKind: '', postKind: '',
+        startStr: this.fmt(sMin), endStr: this.fmt(eMin),
+        startColor: sf === 'bad' ? BAD : sf === 'good' ? GOOD : INK,
+        endColor: ef === 'bad' ? BAD : ef === 'good' ? GOOD : INK,
+        badgeShow: hasBad || hasGood,
+        badgeText: hasBad ? 'DELŠÍ SMĚNA' : (hasGood ? 'KRATŠÍ SMĚNA' : ''),
+        badgeBg: hasBad ? '#FBE9E8' : '#E6F4EA',
+        badgeFg: hasBad ? BAD : GOOD
+      };
+    };
+
+    const monthsDef = [{ m: 6, short: 'ČVC' }, { m: 7, short: 'SRP' }];
+    const days = [];
+    let gi = 0;
+    monthsDef.forEach(mo => {
+      const len = new Date(2026, mo.m + 1, 0).getDate();
+      for (let num = 1; num <= len; num++) {
+        const dow = new Date(2026, mo.m, num).getDay();
+        const weekend = (dow === 0 || dow === 6);
+        const today = (mo.m === 6 && num === 15);
+        days.push({
+          gi, month: mo.m, monthShort: mo.short, num,
+          weekday: cz[dow], dow: czS[dow], weekend, today,
+          firstOfMonth: num === 1,
+          date: num + '.' + (mo.m + 1) + '.2026'
+        });
+        gi++;
+      }
+    });
+
+    days.forEach(d => {
+      SH.forEach((sh, si) => {
+        const person = names[(d.gi * 3 + si) % names.length];
+        let s = sh.s, e = sh.e, sf = null, ef = null;
+        const r = (d.gi * 7 + si * 13) % 11, mag = (d.gi % 4) * 5 + 15;
+        if (r === 1) { s -= mag; sf = 'bad'; }
+        else if (r === 2) { e -= mag; ef = 'good'; }
+        else if (r === 3) { e += mag; ef = 'bad'; }
+        else if (r === 4) { s += mag; sf = 'good'; }
+        d[sh.key] = mk(person, s, e, sf, ef);
+      });
+    });
+
+    const findDay = (m, num) => days.find(x => x.month === m && x.num === num);
+    Object.assign(findDay(6, 15), { d: mk('Jana', 440, 1200, null, null), k: mk('Martin P.', 425, 1015, 'bad', 'good'), n: mk('Honza', 1005, 445, 'bad', null) });
+    Object.assign(findDay(6, 16), { d: mk('Martin P.', 380, 1135, null, 'good'), k: mk('Ivona', 440, 1145, null, 'bad'), n: mk('Martina', 1130, 480, null, 'bad') });
+    Object.assign(findDay(6, 17), { d: mk('Pepík', 420, 1140, null, null), k: mk('Honza', 475, 1185, null, null), n: mk('Ivona', 1170, 450, 'good', null) });
+    Object.assign(findDay(6, 18), { d: mk('Martina', 410, 1150, 'good', null), k: mk('Jitka', 440, 1125, null, 'bad'), n: mk('Veronika', 1140, 450, null, null) });
+    findDay(6, 19).n = mk('Kuba', 1140, 450, null, null);
+    findDay(6, 20).n = mk('Kuba', 1140, 450, null, null);
+    findDay(6, 31).n = mk('Míra', 1140, 450, null, null);
+
+    // --- Demo scenarios for Ivona (default person) — one per case ---
+    // 21: start on 514 (arrives before the 514 colleague)
+    Object.assign(findDay(6, 21), { d: mk('Jitka', 420, 1140, null, null), k: mk('Ivona', 390, 1140, 'bad', null), n: mk('Kuba', 1140, 420, null, null) });
+    // 22: no-takeover in the morning (arrives after the night shift already left)
+    Object.assign(findDay(6, 22), { d: mk('Pepík', 420, 1140, null, null), k: mk('Ivona', 470, 1140, 'good', null), n: mk('Tomáš', 1140, 420, null, null) });
+    // 23: no-handover in the evening (leaves before the night shift arrives)
+    Object.assign(findDay(6, 23), { d: mk('Lucka', 420, 1140, null, null), k: mk('Ivona', 420, 1080, null, 'good'), n: mk('Honza', 1140, 420, null, null) });
+    // 24: end on 514 (works past the night arrival and past the 514 end)
+    Object.assign(findDay(6, 24), { d: mk('Jana', 420, 1140, null, null), k: mk('Ivona', 420, 1180, null, 'bad'), n: mk('Míra', 1140, 420, null, null) });
+    // 25: EDGE — starts without takeover AND ends without handover
+    Object.assign(findDay(6, 25), { d: mk('Pavel B.', 420, 1140, null, null), k: mk('Ivona', 470, 1080, 'good', 'good'), n: mk('Veronika', 1140, 420, null, null) });
+    // 26: EDGE — 514 → 524 → 514 (starts and ends on the neighbouring post)
+    Object.assign(findDay(6, 26), { d: mk('Martina', 420, 1140, null, null), k: mk('Ivona', 390, 1180, 'bad', 'bad'), n: mk('Kuba', 1140, 420, null, null) });
+    // 28–29: EDGE — Ivona night without takeover (evening) AND without handover (morning)
+    Object.assign(findDay(6, 28), { d: mk('Jana', 420, 1140, null, null), k: mk('Tomáš', 420, 1080, null, 'good'), n: mk('Ivona', 1170, 420, 'good', null) });
+    Object.assign(findDay(6, 29), { k: mk('Honza', 470, 1140, 'good', null) });
+
+    // --- Compute handover / seat-change markers (only on the 524 post) ---
+    days.forEach((d, i) => {
+      const prev = days[i - 1], next = days[i + 1];
+      const k = d.k, dd = d.d, n = d.n;
+      const prevNightEnd = prev ? prev.n.e : null;
+      // 524 day — before start
+      if (k.s < dd.s) k.preKind = '514';
+      else if (prevNightEnd != null && k.s > prevNightEnd) k.preKind = 'no';
+      else k.preKind = '';
+      // 524 day — after end
+      if (k.e > n.s && k.e > dd.e) k.postKind = '514';
+      else if (k.e < n.s) k.postKind = 'no';
+      else k.postKind = '';
+      // night (occupies 524 overnight)
+      n.preKind = (n.s > k.e) ? 'no' : '';
+      n.postKind = (next && n.e < next.k.s) ? 'no' : '';
+      // 514 post — never marked
+      dd.preKind = ''; dd.postKind = '';
+    });
+
+    // ---- Matrix ----
+    const pp = {};
+    names.forEach(n => pp[n] = {});
+    days.forEach(d => {
+      ['d', 'k', 'n'].forEach(key => { pp[d[key].person][d.gi] = Object.assign({ key }, d[key]); });
+    });
+    const dBg = '#FBE1E5', dAccent = '#E0224B', kBg = '#ECEFF2', kAccent = '#8A96A2', nBg = '#ECEFF2', nAccent = '#8A96A2';
+    const seamOn = '3px solid #1B2530', seamOff = '1px solid #E9EDF1';
+    const rows = names.map(name => {
+      const cells = days.map(dd => {
+        const todayA = pp[name][dd.gi];
+        const prevA = pp[name][dd.gi - 1];
+        const hasEndPrev = !!(prevA && prevA.key === 'n');
+        const isNight = !!(todayA && todayA.key === 'n');
+        const isDay = !!(todayA && todayA.key !== 'n');
+        let startTime = '', startColor = '#1B2530', endTime = '', endColor = '#1B2530', accentBar = '', baseBg;
+        if (isDay) {
+          startTime = todayA.startStr; startColor = todayA.startColor;
+          endTime = todayA.endStr; endColor = todayA.endColor;
+          accentBar = todayA.key === 'd' ? dAccent : kAccent;
+          baseBg = todayA.key === 'd' ? dBg : kBg;
+        } else {
+          baseBg = dd.weekend ? '#FFF3E6' : '#FFFFFF';
+          if (isNight) { startTime = todayA.startStr + ' →'; startColor = todayA.startColor; }
+        }
+        const empty = !todayA && !hasEndPrev;
+        return {
+          empty, isDay, isNight, hasEndPrev,
+          endPrevTime: hasEndPrev ? '→ ' + prevA.endStr : '',
+          endPrevColor: hasEndPrev ? prevA.endColor : '#1B2530',
+          startTime, startColor, endTime, endColor,
+          pre514: isDay && todayA.preKind === '514',
+          preNo: isDay && todayA.preKind === 'no',
+          post514: isDay && todayA.postKind === '514',
+          postNo: isDay && todayA.postKind === 'no',
+          nightPreNo: isNight && todayA.preKind === 'no',
+          endPrevNo: hasEndPrev && prevA.postKind === 'no',
+          nBg, nAccent, baseBg, accentBar,
+          outerBorderLeft: dd.firstOfMonth ? seamOn : seamOff,
+          outline: dd.today ? '2px solid #2563EB' : 'none'
+        };
+      });
+      return { name, cells };
+    });
+    const matrix = {
+      header: days.map(d => ({
+        n: d.num, dow: d.dow,
+        bg: d.today ? '#EAF2FF' : d.weekend ? '#FFF3E6' : '#F5F7F9',
+        ring: d.today ? '2px solid #2563EB' : '1px solid #E9EDF1',
+        borderLeft: d.firstOfMonth ? seamOn : (d.today ? '2px solid #2563EB' : '1px solid #E9EDF1')
+      })),
+      rows,
+      months: [{ label: 'Červenec 2026', span: 31 }, { label: 'Srpen 2026', span: 31 }]
+    };
+
+    const roleMeta = {
+      d: { label: 'Dlouhá 514', code: '514', color: '#C0223F', bg: '#FBE1E5' },
+      k: { label: 'Krátká 524', code: '524', color: '#4B5563', bg: '#ECEFF2' },
+      n: { label: 'Noční', code: '', color: '#4B5563', bg: '#ECEFF2' }
+    };
+    const todayGi = days.find(d => d.today).gi;
+
+    return { days, names, roleMeta, todayGi, matrix };
+  }
+
+  buildWorker() {
+    const { days, roleMeta, todayGi } = this.model;
+    const person = this.state.person;
+    const shifts = [];
+    days.forEach(d => {
+      ['d', 'k', 'n'].forEach(key => {
+        if (d[key].person === person && d.gi >= todayGi) {
+          const a = d[key], rm = roleMeta[key], night = key === 'n';
+          shifts.push({
+            id: d.gi + key, gi: d.gi, key,
+            weekday: d.weekday, dow: d.dow, dateStr: d.date, night,
+            typeLabel: rm.label, code: rm.code, accent: rm.color, tint: rm.bg,
+            startStr: a.startStr, endStr: a.endStr, startColor: a.startColor, endColor: a.endColor,
+            timesStr: night ? (a.startStr + ' → ' + a.endStr) : (a.startStr + ' – ' + a.endStr),
+            badgeShow: a.badgeShow, badgeText: a.badgeText, badgeBg: a.badgeBg, badgeFg: a.badgeFg
+          });
+        }
+      });
+    });
+    return shifts;
+  }
+
+  buildDetail(sel) {
+    const { days, roleMeta } = this.model;
+    const d = days[sel.gi];
+    const P = (a, key) => ({
+      name: a.person, role: roleMeta[key].label, color: roleMeta[key].color, bg: roleMeta[key].bg,
+      startStr: a.startStr, endStr: a.endStr, startColor: a.startColor, endColor: a.endColor,
+      sep: key === 'n' ? '→' : '–'
+    });
+    const WARN = { noteBg: '#FDF0D5', noteFg: '#8A5A00', noteBorder: '#E7B85C', noteIcon: '', noteWarn: true, noteMove: false };
+    const MOVE = { noteBg: '#FBE1E5', noteFg: '#C0223F', noteBorder: '#E6A3AE', noteIcon: '514', noteWarn: false, noteMove: true };
+    const noNote = { hasNote: false, note: '', noteBg: '', noteFg: '', noteBorder: '', noteIcon: '', noteWarn: false, noteMove: false };
+    const withNote = (obj, kind, text) => Object.assign(obj, { hasNote: true, note: text }, kind === 'warn' ? WARN : MOVE);
+    const me = d[sel.key], rm = roleMeta[sel.key];
+    let takeover, alongside, handoff;
+    if (sel.key === 'n') {
+      takeover = Object.assign({ time: me.startStr, when: 'Večer', people: [P(d.d, 'd'), P(d.k, 'k')] }, noNote);
+      if (me.preKind === 'no') { takeover.people = []; withNote(takeover, 'warn', 'Nastupuješ bez převzetí — denní služba na 524 už skončila. Mezičas do tvého příchodu kryl kolega na 514.'); }
+      alongside = { show: false, people: [] };
+      const nd = days[sel.gi + 1];
+      handoff = Object.assign({ time: me.endStr, when: 'Ráno · další den', people: nd ? [P(nd.d, 'd'), P(nd.k, 'k')] : [] }, noNote);
+      if (me.postKind === 'no') { handoff.people = []; withNote(handoff, 'warn', 'Odcházíš bez předávky — ranní denní služba na 524 nastupuje až po tvém odchodu. Mezičas kryje kolega na 514.'); }
+    } else {
+      const prev = days[sel.gi - 1];
+      takeover = Object.assign({ time: me.startStr, when: 'Ráno', people: prev ? [P(prev.n, 'n')] : [] }, noNote);
+      if (me.preKind === '514') withNote(takeover, 'move', 'Začni na sousedním postu 514. Jakmile v ' + d.d.startStr + ' dorazí ' + d.d.person + ' (514), přesedni na svůj post 524.');
+      else if (me.preKind === 'no') { takeover.people = []; withNote(takeover, 'warn', 'Nastupuješ bez převzetí — předchozí služba na 524 (noční) už skončila. Mezičas do tvého příchodu kryje kolega na 514.'); }
+      const ok = sel.key === 'd' ? 'k' : 'd';
+      alongside = { show: true, people: [P(d[ok], ok)] };
+      handoff = Object.assign({ time: me.endStr, when: 'Večer', people: [P(d.n, 'n')] }, noNote);
+      if (me.postKind === '514') withNote(handoff, 'move', 'Až ve ' + d.n.startStr + ' dorazí ' + d.n.person + ' na noční, přesedni na sousední post 514 a dokonči tam směnu do ' + me.endStr + '.');
+      else if (me.postKind === 'no') { handoff.people = []; withNote(handoff, 'warn', 'Odcházíš bez předávky — noční služba na 524 začíná až po tvém odchodu. Mezičas kryje kolega na 514.'); }
+    }
+    return {
+      dateStr: d.date, weekday: d.weekday,
+      me: { label: rm.label, color: rm.color, bg: rm.bg, timesStr: sel.timesStr },
+      takeover, alongside, handoff
+    };
+  }
+
+  buildPersonCells(person) {
+    const { days } = this.model;
+    const dBg = '#FBE1E5', dAccent = '#E0224B', kBg = '#ECEFF2', kAccent = '#8A96A2', nBg = '#ECEFF2', nAccent = '#8A96A2';
+    const roleOn = (d) => {
+      if (d.d.person === person) return { key: 'd', a: d.d };
+      if (d.k.person === person) return { key: 'k', a: d.k };
+      if (d.n.person === person) return { key: 'n', a: d.n };
+      return null;
+    };
+    return days.map(d => {
+      const cur = roleOn(d);
+      const prev = days[d.gi - 1] ? roleOn(days[d.gi - 1]) : null;
+      const hasEndPrev = !!(prev && prev.key === 'n');
+      const isNight = !!(cur && cur.key === 'n');
+      const isDay = !!(cur && cur.key !== 'n');
+      let startTime = '', startColor = '#1B2530', endTime = '', endColor = '#1B2530', accentBar = '', baseBg;
+      if (isDay) {
+        startTime = cur.a.startStr; startColor = cur.a.startColor;
+        endTime = cur.a.endStr; endColor = cur.a.endColor;
+        accentBar = cur.key === 'd' ? dAccent : kAccent;
+        baseBg = cur.key === 'd' ? dBg : kBg;
+      } else {
+        baseBg = d.weekend ? '#FFF7EC' : '#FFFFFF';
+        if (isNight) { startTime = cur.a.startStr + ' →'; startColor = cur.a.startColor; }
+      }
+      const empty = !cur && !hasEndPrev;
+      const clickable = !!cur || hasEndPrev;
+      const selKey = cur ? cur.key : (hasEndPrev ? 'n' : null);
+      const refGi = cur ? d.gi : (hasEndPrev ? d.gi - 1 : d.gi);
+      const timesStr = cur ? (cur.key === 'n' ? cur.a.startStr + ' → ' + cur.a.endStr : cur.a.startStr + ' – ' + cur.a.endStr) : '';
+      return {
+        blank: false, gi: d.gi, num: d.num, monthShort: d.monthShort, firstOfMonth: d.firstOfMonth, showNum: true,
+        clickable, selKey, timesStr, labelTop: isNight, id: clickable ? (refGi + selKey) : null,
+        dowIdx: (new Date(2026, d.month, d.num).getDay() + 6) % 7,
+        today: d.today, weekend: d.weekend,
+        empty, isDay, isNight, hasEndPrev,
+        endPrevTime: hasEndPrev ? '→ ' + prev.a.endStr : '',
+        endPrevColor: hasEndPrev ? prev.a.endColor : '#1B2530',
+        startTime, startColor, endTime, endColor,
+        pre514: isDay && cur.a.preKind === '514',
+        preNo: isDay && cur.a.preKind === 'no',
+        post514: isDay && cur.a.postKind === '514',
+        postNo: isDay && cur.a.postKind === 'no',
+        nightPreNo: isNight && cur.a.preKind === 'no',
+        endPrevNo: hasEndPrev && prev.a.postKind === 'no',
+        nBg, nAccent, baseBg, accentBar,
+        outline: d.today ? '2px solid #2563EB' : 'none'
+      };
+    });
+  }
+
+  buildCalendar(person) {
+    const cells = this.buildPersonCells(person);
+    const blank = { blank: true, clickable: false, labelTop: false, showNum: false, baseBg: '#EAEEF2', outline: 'none', firstOfMonth: false, today: false, isDay: false, isNight: false, hasEndPrev: false, empty: false, num: '', monthShort: '', pre514: false, preNo: false, post514: false, postNo: false, nightPreNo: false, endPrevNo: false };
+    const weeks = [];
+    let cur = null;
+    cells.forEach(c => {
+      if (!cur) { cur = { days: new Array(c.dowIdx).fill(blank) }; }
+      else if (c.dowIdx === 0) { weeks.push(cur); cur = { days: [] }; }
+      cur.days.push(c);
+    });
+    if (cur) weeks.push(cur);
+    weeks.forEach(w => {
+      while (w.days.length < 7) w.days.push(blank);
+      const f = w.days.find(x => !x.blank);
+      const l = [...w.days].reverse().find(x => !x.blank);
+      w.label = f ? (f.num + '. – ' + l.num + '.') : '';
+      w.sub = f ? f.monthShort : '';
+    });
+    return { weeks };
+  }
+
+  tabStyle(active) {
+    return 'all:unset; box-sizing:border-box; cursor:pointer; font-family:inherit; font-size:15px; font-weight:700; padding:9px 18px; border-radius:9px; text-align:center; '
+      + (active ? 'background:#EB0037; color:#fff;' : 'color:#B7C0CA;');
+  }
+
+  renderVals() {
+    const view = this.state.view;
+    const shifts = this.buildWorker();
+    const sel = shifts.find(s => s.id === this.state.selId) || null;
+    const selId = sel ? sel.id : null;
+    const detail = sel ? this.buildDetail(sel) : null;
+    const calendar = this.buildCalendar(this.state.person);
+    calendar.weeks.forEach(w => {
+      w.days = w.days.map(c => {
+        if (!c.clickable) return Object.assign({ selected: false, cellBorder: '1px solid #E9EDF1', selRing: c.outline, cursor: 'default', labelPos: 'bottom:5px;', onClickCell: null }, c);
+        const selected = c.id === selId;
+        return Object.assign({}, c, {
+          selected,
+          cellBorder: selected ? '2px solid #1B2530' : '1px solid #E9EDF1',
+          selRing: c.outline,
+          cursor: 'pointer',
+          labelPos: c.labelTop ? 'top:5px;' : 'bottom:5px;',
+          onClickCell: () => this.setState({ selId: this.state.selId === c.id ? null : c.id })
+        });
+      });
+    });
+    return {
+      isCalendar: view === 'calendar',
+      isMatrix: view === 'matrix',
+      tabCalStyle: this.tabStyle(view === 'calendar'),
+      tabMatStyle: this.tabStyle(view === 'matrix'),
+      showCalendar: () => this.setState({ view: 'calendar' }),
+      showMatrix: () => this.setState({ view: 'matrix' }),
+      printHref: view === 'calendar'
+        ? 'Rozpis-tisk.dc.html?mode=worker&person=' + encodeURIComponent(this.state.person)
+        : 'Rozpis-tisk.dc.html?mode=complete',
+      matrix: Object.assign({}, this.model.matrix, {
+        rows: this.model.matrix.rows.map(r => Object.assign({}, r, {
+          onName: () => this.setState({ view: 'calendar', person: r.name, selId: null })
+        }))
+      }),
+      people: this.model.names.map(n => ({ name: n, sel: n === this.state.person })),
+      person: this.state.person,
+      hasDetail: !!detail,
+      noDetail: !detail,
+      detail,
+      calendar,
+      weekdays: [
+        { d: 'Po', hdBg: '#F5F7F9', hdColor: '#5B6672' }, { d: 'Út', hdBg: '#F5F7F9', hdColor: '#5B6672' },
+        { d: 'St', hdBg: '#F5F7F9', hdColor: '#5B6672' }, { d: 'Čt', hdBg: '#F5F7F9', hdColor: '#5B6672' },
+        { d: 'Pá', hdBg: '#F5F7F9', hdColor: '#5B6672' }, { d: 'So', hdBg: '#FFF3E6', hdColor: '#9A5B00' },
+        { d: 'Ne', hdBg: '#FFF3E6', hdColor: '#9A5B00' }
+      ],
+      onPerson: (e) => this.setState({ person: e.target.value, selId: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

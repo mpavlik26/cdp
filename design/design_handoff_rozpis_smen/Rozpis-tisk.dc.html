@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    a { color: #1E4FBF; }
+    @page { size: A4 portrait; margin: 12mm; }
+    @media print {
+      .no-print { display: none !important; }
+      .sheet { border: none !important; }
+      thead { display: table-header-group; }
+      tr { break-inside: avoid; }
+    }
+  </style>
+</helmet>
+
+<div style="min-height:100vh; background:#EEF1F5; font-family:'Source Sans 3', system-ui, sans-serif; color:#111;">
+  <div class="no-print" style="background:#12181F; color:#fff; padding:14px 22px; display:flex; flex-wrap:wrap; align-items:center; gap:14px;">
+    <div style="flex:1; min-width:180px;">
+      <div style="font-size:18px; font-weight:700;">Rozpis služeb — tiskové zobrazení</div>
+      <div style="font-size:13px; opacity:.65;">úsporná tabulka, vhodná pro tisk · červenec – srpen 2026</div>
+    </div>
+    <a href="Rozpis%20slu%C5%BEeb.dc.html" style="text-decoration:none; font-size:14px; font-weight:700; color:#B7C0CA; padding:9px 14px; border-radius:9px; border:1px solid #3A4655;">← Zpět do aplikace</a>
+    <button onClick="{{ onPrint }}" style="all:unset; cursor:pointer; font-size:15px; font-weight:700; color:#fff; background:#EB0037; padding:10px 18px; border-radius:9px;">Vytisknout</button>
+  </div>
+
+  <div style="max-width:900px; margin:0 auto; padding:22px 18px 60px;">
+
+    <!-- ===== COMPLETE ROSTER ===== -->
+    <sc-if value="{{ isComplete }}" hint-placeholder-val="{{ true }}">
+      <sc-for list="{{ months }}" as="mo" hint-placeholder-count="2">
+        <div class="sheet" style="background:#fff; border:1px solid #CBD2DA; border-radius:6px; overflow:hidden; margin-bottom:22px;">
+          <div style="padding:10px 14px; border-bottom:2px solid #111; font-size:17px; font-weight:700;">{{ mo.label }}</div>
+          <table style="width:100%; border-collapse:collapse; font-size:12px;">
+            <thead>
+              <tr style="background:#F0F2F5;">
+                <th style="text-align:left; padding:5px 8px; border-bottom:1px solid #BBB; width:88px;">Datum</th>
+                <th style="text-align:left; padding:5px 8px; border-bottom:1px solid #BBB; border-left:1px solid #DDD;">Dlouhá 514</th>
+                <th style="text-align:left; padding:5px 8px; border-bottom:1px solid #BBB; border-left:1px solid #DDD;">Krátká 524</th>
+                <th style="text-align:left; padding:5px 8px; border-bottom:1px solid #BBB; border-left:1px solid #DDD;">Noční</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ mo.rows }}" as="r" hint-placeholder-count="31">
+                <tr style="background:{{ r.rowBg }};">
+                  <td style="padding:5px 8px; border-bottom:1px solid #E6E6E6; font-weight:{{ r.dateWeight }}; white-space:nowrap;">{{ r.dateLabel }}</td>
+                  <td style="padding:5px 8px; border-bottom:1px solid #E6E6E6; border-left:1px solid #EEE;">
+                    <span style="font-weight:700;">{{ r.d.name }}</span> <span style="font-weight:600; color:{{ r.d.startColor }};">{{ r.d.startStr }}</span><span style="color:#999;">–</span><span style="font-weight:600; color:{{ r.d.endColor }};">{{ r.d.endStr }}</span>
+                  </td>
+                  <td style="padding:5px 8px; border-bottom:1px solid #E6E6E6; border-left:1px solid #EEE;">
+                    <span style="font-weight:700;">{{ r.k.name }}</span> <span style="font-weight:600; color:{{ r.k.startColor }};">{{ r.k.startStr }}</span><span style="color:#999;">–</span><span style="font-weight:600; color:{{ r.k.endColor }};">{{ r.k.endStr }}</span>
+                    <sc-if value="{{ r.k.pre514 }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px; font-weight:700; color:#C0223F; border:1px solid #E6A3AE; padding:0 3px; border-radius:3px; margin-left:3px;">514 na začátku</span></sc-if>
+                    <sc-if value="{{ r.k.post514 }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px; font-weight:700; color:#C0223F; border:1px solid #E6A3AE; padding:0 3px; border-radius:3px; margin-left:3px;">514 na konci</span></sc-if>
+                    <sc-if value="{{ r.k.preNo }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px; font-weight:700; color:#8A5A00; margin-left:3px;">⊘ bez převzetí</span></sc-if>
+                    <sc-if value="{{ r.k.postNo }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px; font-weight:700; color:#8A5A00; margin-left:3px;">⊘ bez předávky</span></sc-if>
+                  </td>
+                  <td style="padding:5px 8px; border-bottom:1px solid #E6E6E6; border-left:1px solid #EEE;">
+                    <span style="font-weight:700;">{{ r.n.name }}</span> <span style="font-weight:600; color:{{ r.n.startColor }};">{{ r.n.startStr }}</span><span style="color:#999;">–</span><span style="font-weight:600; color:{{ r.n.endColor }};">{{ r.n.endStr }}</span>
+                    <sc-if value="{{ r.n.preNo }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px; font-weight:700; color:#8A5A00; margin-left:3px;">⊘ bez převzetí</span></sc-if>
+                    <sc-if value="{{ r.n.postNo }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px; font-weight:700; color:#8A5A00; margin-left:3px;">⊘ bez předávky</span></sc-if>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </sc-for>
+    </sc-if>
+
+    <!-- ===== SINGLE WORKER ===== -->
+    <sc-if value="{{ isWorker }}" hint-placeholder-val="{{ false }}">
+      <div class="sheet" style="background:#fff; border:1px solid #CBD2DA; border-radius:6px; overflow:hidden; margin-bottom:22px;">
+        <div style="padding:10px 14px; border-bottom:2px solid #111; font-size:17px; font-weight:700;">Můj směnář — {{ person }} · červenec – srpen 2026</div>
+        <table style="width:100%; border-collapse:collapse; font-size:12px;">
+          <thead>
+            <tr style="background:#F0F2F5;">
+              <th style="text-align:left; padding:5px 8px; border-bottom:1px solid #BBB; width:120px;">Datum</th>
+              <th style="text-align:left; padding:5px 8px; border-bottom:1px solid #BBB; border-left:1px solid #DDD; width:96px;">Služba</th>
+              <th style="text-align:left; padding:5px 8px; border-bottom:1px solid #BBB; border-left:1px solid #DDD; width:96px;">Čas</th>
+              <th style="text-align:left; padding:5px 8px; border-bottom:1px solid #BBB; border-left:1px solid #DDD;">Poznámky ke střídání</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{ workerRows }}" as="r" hint-placeholder-count="10">
+              <tr style="background:{{ r.rowBg }};">
+                <td style="padding:5px 8px; border-bottom:1px solid #E6E6E6; font-weight:{{ r.dateWeight }}; white-space:nowrap;">{{ r.dateLabel }}</td>
+                <td style="padding:5px 8px; border-bottom:1px solid #E6E6E6; border-left:1px solid #EEE; font-weight:700;">{{ r.typeLabel }}</td>
+                <td style="padding:5px 8px; border-bottom:1px solid #E6E6E6; border-left:1px solid #EEE;"><span style="font-weight:600; color:{{ r.startColor }};">{{ r.startStr }}</span><span style="color:#999;">–</span><span style="font-weight:600; color:{{ r.endColor }};">{{ r.endStr }}</span></td>
+                <td style="padding:5px 8px; border-bottom:1px solid #E6E6E6; border-left:1px solid #EEE; color:#333;">{{ r.note }}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </sc-if>
+
+    <div style="font-size:12px; color:#444; line-height:1.6;">
+      <b>Vysvětlivky:</b> „514 na začátku / na konci" = pracovník z postu 524 tráví začátek/konec směny na sousedním postu 514.
+      „⊘ bez převzetí / bez předávky" = na postu 524 vzniká mezera, kterou pokrývá kolega na 514.
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.data = this.build();
+    let mode = 'complete', person = 'Ivona';
+    try {
+      const q = new URLSearchParams(window.location.search);
+      if (q.get('mode') === 'worker') mode = 'worker';
+      if (q.get('person')) person = q.get('person');
+    } catch (e) {}
+    this.state = { mode, person };
+  }
+  pad(n) { return String(n).padStart(2, '0'); }
+  fmt(m) { m = ((m % 1440) + 1440) % 1440; return Math.floor(m / 60) + ':' + this.pad(m % 60); }
+
+  build() {
+    const names = ['Honza','Ivona','Jana','Jitka','Káťa','Kuba','Lucka','Martin J.','Martin P.','Martina','Míra','Pavel B.','Pavol F.','Pepík','Tomáš','Veronika'];
+    const SH = [{ key: 'd', s: 420, e: 1140 }, { key: 'k', s: 420, e: 1140 }, { key: 'n', s: 1140, e: 420 }];
+    const czS = ['ne','po','út','st','čt','pá','so'];
+    const GOOD = '#1B7F3B', BAD = '#C43331', INK = '#333';
+    const mk = (person, s, e, sf, ef) => ({ person, s, e, startStr: this.fmt(s), endStr: this.fmt(e),
+      startColor: sf === 'bad' ? BAD : sf === 'good' ? GOOD : INK,
+      endColor: ef === 'bad' ? BAD : ef === 'good' ? GOOD : INK,
+      preKind: '', postKind: '' });
+
+    const monthsDef = [{ m: 6, label: 'Červenec 2026' }, { m: 7, label: 'Srpen 2026' }];
+    const days = [];
+    let gi = 0;
+    monthsDef.forEach(mo => {
+      const len = new Date(2026, mo.m + 1, 0).getDate();
+      for (let num = 1; num <= len; num++) {
+        const dow = new Date(2026, mo.m, num).getDay();
+        days.push({ gi, month: mo.m, num, dow, weekend: dow === 0 || dow === 6, today: mo.m === 6 && num === 15 });
+        gi++;
+      }
+    });
+    days.forEach(d => {
+      SH.forEach((sh, si) => {
+        const person = names[(d.gi * 3 + si) % names.length];
+        let s = sh.s, e = sh.e, sf = null, ef = null;
+        const r = (d.gi * 7 + si * 13) % 11, mag = (d.gi % 4) * 5 + 15;
+        if (r === 1) { s -= mag; sf = 'bad'; } else if (r === 2) { e -= mag; ef = 'good'; } else if (r === 3) { e += mag; ef = 'bad'; } else if (r === 4) { s += mag; sf = 'good'; }
+        d[sh.key] = mk(person, s, e, sf, ef);
+      });
+    });
+    const D = (m, num) => days.find(x => x.month === m && x.num === num);
+    Object.assign(D(6, 15), { d: mk('Jana', 440, 1200, null, null), k: mk('Martin P.', 425, 1015, 'bad', 'good'), n: mk('Honza', 1005, 445, 'bad', null) });
+    Object.assign(D(6, 16), { d: mk('Martin P.', 380, 1135, null, 'good'), k: mk('Ivona', 440, 1145, null, 'bad'), n: mk('Martina', 1130, 480, null, 'bad') });
+    Object.assign(D(6, 17), { d: mk('Pepík', 420, 1140, null, null), k: mk('Honza', 475, 1185, null, null), n: mk('Ivona', 1170, 450, 'good', null) });
+    Object.assign(D(6, 18), { d: mk('Martina', 410, 1150, 'good', null), k: mk('Jitka', 440, 1125, null, 'bad'), n: mk('Veronika', 1140, 450, null, null) });
+    D(6, 19).n = mk('Kuba', 1140, 450, null, null); D(6, 20).n = mk('Kuba', 1140, 450, null, null); D(6, 31).n = mk('Míra', 1140, 450, null, null);
+    Object.assign(D(6, 21), { d: mk('Jitka', 420, 1140, null, null), k: mk('Ivona', 390, 1140, 'bad', null), n: mk('Kuba', 1140, 420, null, null) });
+    Object.assign(D(6, 22), { d: mk('Pepík', 420, 1140, null, null), k: mk('Ivona', 470, 1140, 'good', null), n: mk('Tomáš', 1140, 420, null, null) });
+    Object.assign(D(6, 23), { d: mk('Lucka', 420, 1140, null, null), k: mk('Ivona', 420, 1080, null, 'good'), n: mk('Honza', 1140, 420, null, null) });
+    Object.assign(D(6, 24), { d: mk('Jana', 420, 1140, null, null), k: mk('Ivona', 420, 1180, null, 'bad'), n: mk('Míra', 1140, 420, null, null) });
+    Object.assign(D(6, 25), { d: mk('Pavel B.', 420, 1140, null, null), k: mk('Ivona', 470, 1080, 'good', 'good'), n: mk('Veronika', 1140, 420, null, null) });
+    Object.assign(D(6, 26), { d: mk('Martina', 420, 1140, null, null), k: mk('Ivona', 390, 1180, 'bad', 'bad'), n: mk('Kuba', 1140, 420, null, null) });
+    Object.assign(D(6, 28), { d: mk('Jana', 420, 1140, null, null), k: mk('Tomáš', 420, 1080, null, 'good'), n: mk('Ivona', 1170, 420, 'good', null) });
+    Object.assign(D(6, 29), { k: mk('Honza', 470, 1140, 'good', null) });
+
+    days.forEach((d, i) => {
+      const prev = days[i - 1], next = days[i + 1], k = d.k, dd = d.d, n = d.n;
+      const prevNightEnd = prev ? prev.n.e : null;
+      if (k.s < dd.s) k.preKind = '514';
+      else if (prevNightEnd != null && k.s > prevNightEnd) k.preKind = 'no';
+      if (k.e > n.s && k.e > dd.e) k.postKind = '514';
+      else if (k.e < n.s) k.postKind = 'no';
+      n.preKind = n.s > k.e ? 'no' : '';
+      n.postKind = next && n.e < next.k.s ? 'no' : '';
+    });
+
+    const MON = ['ledna','února','března','dubna','května','června','července','srpna','září','října','listopadu','prosince'];
+    const cellOf = (a, key) => ({
+      name: a.person, startStr: a.startStr, endStr: a.endStr, startColor: a.startColor, endColor: a.endColor,
+      pre514: key === 'k' && a.preKind === '514', post514: key === 'k' && a.postKind === '514',
+      preNo: a.preKind === 'no', postNo: a.postKind === 'no'
+    });
+    const months = monthsDef.map(mo => ({
+      label: mo.label,
+      rows: days.filter(d => d.month === mo.m).map(d => ({
+        dateLabel: d.num + '. ' + MON[d.month] + ' · ' + czS[d.dow],
+        dateWeight: d.today ? 800 : 600,
+        rowBg: d.today ? '#FFF7CC' : d.weekend ? '#F4F6F8' : '#fff',
+        d: cellOf(d.d, 'd'), k: cellOf(d.k, 'k'), n: cellOf(d.n, 'n')
+      }))
+    }));
+    return { days, names, months, MON, czS };
+  }
+
+  buildWorkerRows(person) {
+    const { days, MON, czS } = this.data;
+    const typeMap = { d: 'Dlouhá 514', k: 'Krátká 524', n: 'Noční' };
+    const rows = [];
+    days.forEach(d => {
+      ['d', 'k', 'n'].forEach(key => {
+        const a = d[key];
+        if (a.person !== person) return;
+        const notes = [];
+        if (key === 'k' && a.preKind === '514') notes.push('Začátek na postu 514');
+        if (key === 'k' && a.postKind === '514') notes.push('Konec na postu 514');
+        if (a.preKind === 'no') notes.push('Nástup bez převzetí');
+        if (a.postKind === 'no') notes.push('Odchod bez předávky');
+        rows.push({
+          dateLabel: d.num + '. ' + MON[d.month] + ' · ' + czS[d.dow],
+          dateWeight: d.today ? 800 : 600,
+          rowBg: d.today ? '#FFF7CC' : d.weekend ? '#F4F6F8' : '#fff',
+          typeLabel: typeMap[key],
+          startStr: a.startStr, endStr: a.endStr, startColor: a.startColor, endColor: a.endColor,
+          note: notes.length ? notes.join(' · ') : '—'
+        });
+      });
+    });
+    return rows;
+  }
+
+  tabStyle(active) {
+    return 'all:unset; box-sizing:border-box; cursor:pointer; font-family:inherit; font-size:14px; font-weight:700; padding:8px 14px; border-radius:9px; '
+      + (active ? 'background:#EB0037; color:#fff;' : 'color:#B7C0CA;');
+  }
+
+  renderVals() {
+    const mode = this.state.mode;
+    return {
+      isComplete: mode === 'complete',
+      isWorker: mode === 'worker',
+      tabCompleteStyle: this.tabStyle(mode === 'complete'),
+      tabWorkerStyle: this.tabStyle(mode === 'worker'),
+      showComplete: () => this.setState({ mode: 'complete' }),
+      showWorker: () => this.setState({ mode: 'worker' }),
+      months: this.data.months,
+      workerRows: this.buildWorkerRows(this.state.person),
+      person: this.state.person,
+      people: this.data.names.map(n => ({ name: n, sel: n === this.state.person })),
+      onPerson: (e) => this.setState({ person: e.target.value }),
+      onPrint: () => window.print()
+    };
+  }
+}
+</script>
+</body>
+</html>
