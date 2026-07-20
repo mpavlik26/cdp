@@ -29,8 +29,6 @@
     personIdByName[CONFIG.personIds[id]] = id;
   });
 
-  const todayIndex = DATA.dates.findIndex((d) => d.today);
-
   const state = {
     view: CONFIG.initialView === 'calendar' ? 'calendar' : 'matrix',
     person: CONFIG.initialPerson || DATA.people[0] || null,
@@ -144,10 +142,9 @@
   // ---------- Detail panel ----------
 
   function buildWorkerShifts(person) {
-    if (todayIndex === -1 || !person) return [];
+    if (!person) return [];
     const shifts = [];
     DATA.dates.forEach((day, gi) => {
-      if (gi < todayIndex) return;
       ['d', 'k', 'n'].forEach((key) => {
         const a = day[key];
         if (a && a.person === person) {
@@ -188,14 +185,12 @@
     if (sel.key === 'n') {
       takeover = Object.assign({ time: me.startStr, when: 'Večer', people: [P(d.d, 'd'), P(d.k, 'k')] }, noNote);
       if (me.preKind === 'no') {
-        takeover.people = [];
         withNote(takeover, 'warn', 'Nastupuješ bez převzetí — denní služba na 524 už skončila. Mezičas do tvého příchodu kryl kolega na 514.');
       }
       alongside = { show: false, people: [] };
       const nd = days[sel.gi + 1];
       handoff = Object.assign({ time: me.endStr, when: 'Ráno · další den', people: nd ? [P(nd.d, 'd'), P(nd.k, 'k')] : [] }, noNote);
       if (me.postKind === 'no') {
-        handoff.people = [];
         withNote(handoff, 'warn', 'Odcházíš bez předávky — ranní denní služba na 524 nastupuje až po tvém odchodu. Mezičas kryje kolega na 514.');
       }
     } else {
@@ -204,7 +199,6 @@
       if (me.preKind === '514') {
         withNote(takeover, 'move', 'Začni na sousedním postu 514. Jakmile v ' + d.d.startStr + ' dorazí ' + d.d.person + ' (514), přesedni na svůj post 524.');
       } else if (me.preKind === 'no') {
-        takeover.people = [];
         withNote(takeover, 'warn', 'Nastupuješ bez převzetí — předchozí služba na 524 (noční) už skončila. Mezičas do tvého příchodu kryje kolega na 514.');
       }
       const ok = sel.key === 'd' ? 'k' : 'd';
@@ -213,7 +207,6 @@
       if (me.postKind === '514') {
         withNote(handoff, 'move', 'Až ve ' + d.n.startStr + ' dorazí ' + d.n.person + ' na noční, přesedni na sousední post 514 a dokonči tam směnu do ' + me.endStr + '.');
       } else if (me.postKind === 'no') {
-        handoff.people = [];
         withNote(handoff, 'warn', 'Odcházíš bez předávky — noční služba na 524 začíná až po tvém odchodu. Mezičas kryje kolega na 514.');
       }
     }
@@ -477,8 +470,7 @@
       + '<select class="person-select" data-role="person-select">' + peopleOptions + '</select>'
       + '</label>'
       + '<div class="card-header__titles">'
-      + '<div class="view-eyebrow">MŮJ SMĚNÁŘ · KALENDÁŘ</div>'
-      + '<div class="view-title">' + esc(person) + ' · ' + esc(CONFIG.rangeLabel) + '</div>'
+      + '<div class="view-eyebrow">MŮJ SMĚNÁŘ</div>'
       + '</div>'
       + '<a class="print-link" href="' + printHref + '" title="Úsporné zobrazení vhodné pro tisk">🖨 Tiskové zobrazení</a>'
       + '</div>'
@@ -544,7 +536,6 @@
       + '<div class="card-header card-header--matrix">'
       + '<div class="card-header__titles">'
       + '<div class="view-eyebrow">KOMPLETNÍ SMĚNÁŘ</div>'
-      + '<div class="view-title view-title--matrix">Kdo, kdy a jak dlouho — všichni pracovníci</div>'
       + '</div>'
       + '<a class="print-link" href="index.php?print=complete" title="Úsporné zobrazení vhodné pro tisk">🖨 Tiskové zobrazení</a>'
       + '</div>'

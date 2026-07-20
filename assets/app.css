@@ -125,16 +125,6 @@ button { font-family: inherit; }
   text-transform: uppercase;
 }
 
-.view-title {
-  font-size: 22px;
-  font-weight: 700;
-  margin-top: 2px;
-}
-
-.view-title--matrix {
-  font-size: 20px;
-}
-
 .person-select {
   font-size: 18px;
   font-weight: 700;
@@ -348,7 +338,7 @@ button { font-family: inherit; }
   position: absolute;
   left: 3px;
   right: 3px;
-  height: 42px;
+  height: 31px;
   background: #ECEFF2;
   border-left: 4px solid #8A96A2;
   display: flex;
@@ -637,7 +627,7 @@ button { font-family: inherit; }
 }
 
 .matrix-name-cell {
-  height: 60px;
+  height: 64px;
   background: #fff;
   border: 1px solid #E2E7EC;
   border-radius: 6px;
@@ -661,7 +651,7 @@ button { font-family: inherit; }
 
 .matrix-cell {
   position: relative;
-  height: 60px;
+  height: 64px;
   border-radius: 6px;
   border-top: 1px solid #E9EDF1;
   border-right: 1px solid #E9EDF1;

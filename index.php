@@ -25,6 +25,8 @@ $names = [
     "12" => "Veronika"
 ];
 
+const HANDOVER_BUFFER_MINUTES = 15; //normal handover overlap between 524 and night shifts; only a bigger gap counts as covering 514
+
 const SHIFT_GOOD = '#1B7F3B';
 const SHIFT_BAD = '#C43331';
 const SHIFT_INK = '#1B2530';
@@ -406,7 +408,7 @@ class MonthShiftsList{
       $prevNightEnd = ($prev !== null && $prev['n'] !== null) ? $prev['n']['e'] : null;
 
       if ($k !== null){
-        if ($d !== null && $k['s'] < $d['s']){
+        if ($prevNightEnd !== null && $prevNightEnd - $k['s'] > HANDOVER_BUFFER_MINUTES){
           $k['preKind'] = '514';
         } elseif ($prevNightEnd !== null && $k['s'] > $prevNightEnd){
           $k['preKind'] = 'no';
@@ -414,7 +416,7 @@ class MonthShiftsList{
           $k['preKind'] = '';
         }
 
-        if ($n !== null && $d !== null && $k['e'] > $n['s'] && $k['e'] > $d['e']){
+        if ($n !== null && $k['e'] - $n['s'] > HANDOVER_BUFFER_MINUTES){
           $k['postKind'] = '514';
         } elseif ($n !== null && $k['e'] < $n['s']){
           $k['postKind'] = 'no';
@@ -656,7 +658,7 @@ unset($personIdsForClient['']);
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/app.css">
+  <link rel="stylesheet" href="assets/app.css?v=<?= filemtime(__DIR__ . '/assets/app.css') ?>">
 </head>
 <body>
   <div id="app"></div>
@@ -669,6 +671,6 @@ unset($personIdsForClient['']);
       'initialPerson' => $personNameParam,
     ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>;
   </script>
-  <script src="assets/app.js"></script>
+  <script src="assets/app.js?v=<?= filemtime(__DIR__ . '/assets/app.js') ?>"></script>
 </body>
 </html>
