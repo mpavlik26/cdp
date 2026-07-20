@@ -457,7 +457,81 @@ class MonthShiftsList{
 }
 
 
-function renderPrintHeaderBar(string $title, string $subtitle, string $backHref = 'index.php'): string{
+function buildDetailModel(array $model, int $gi, string $key): array{
+  $days = $model['dates'];
+  $d = $days[$gi];
+  $roleMeta = $model['roleMeta'];
+
+  $P = function(array $a, string $roleKey) use ($roleMeta): array{
+    return [
+      'name' => $a['person'], 'role' => $roleMeta[$roleKey]['label'], 'color' => $roleMeta[$roleKey]['color'], 'bg' => $roleMeta[$roleKey]['bg'],
+      'startStr' => $a['startStr'], 'endStr' => $a['endStr'], 'startColor' => $a['startColor'], 'endColor' => $a['endColor'],
+      'sep' => $roleKey === 'n' ? '→' : '–',
+    ];
+  };
+
+  $noNote = ['hasNote' => false, 'note' => '', 'noteBg' => '', 'noteFg' => '', 'noteBorder' => '', 'noteIcon' => '', 'noteWarn' => false, 'noteMove' => false];
+  $WARN = ['noteBg' => '#FDF0D5', 'noteFg' => '#8A5A00', 'noteBorder' => '#E7B85C', 'noteIcon' => '', 'noteWarn' => true, 'noteMove' => false];
+  $MOVE = ['noteBg' => '#FBE1E5', 'noteFg' => '#C0223F', 'noteBorder' => '#E6A3AE', 'noteIcon' => '514', 'noteWarn' => false, 'noteMove' => true];
+  $withNote = function(array $obj, string $kind, string $text) use ($WARN, $MOVE): array{
+    return array_merge($obj, ['hasNote' => true, 'note' => $text], $kind === 'warn' ? $WARN : $MOVE);
+  };
+
+  $me = $d[$key];
+  $rm = $roleMeta[$key];
+  $timesStr = $key === 'n' ? ($me['startStr'] . ' → ' . $me['endStr']) : ($me['startStr'] . ' – ' . $me['endStr']);
+
+  if ($key === 'n'){
+    $takeoverPeople = [];
+    if ($d['d'] !== null) $takeoverPeople[] = $P($d['d'], 'd');
+    if ($d['k'] !== null) $takeoverPeople[] = $P($d['k'], 'k');
+    $takeover = array_merge(['time' => $me['startStr'], 'when' => 'Večer', 'people' => $takeoverPeople], $noNote);
+    if ($me['preKind'] === 'no'){
+      $takeover = $withNote($takeover, 'warn', 'Nastupuješ bez převzetí — denní služba na 524 už skončila. Mezičas do tvého příchodu kryl kolega na 514.');
+    }
+
+    $alongside = ['show' => false, 'people' => []];
+
+    $nd = $days[$gi + 1] ?? null;
+    $handoffPeople = [];
+    if ($nd !== null){
+      if ($nd['d'] !== null) $handoffPeople[] = $P($nd['d'], 'd');
+      if ($nd['k'] !== null) $handoffPeople[] = $P($nd['k'], 'k');
+    }
+    $handoff = array_merge(['time' => $me['endStr'], 'when' => 'Ráno · další den', 'people' => $handoffPeople], $noNote);
+    if ($me['postKind'] === 'no'){
+      $handoff = $withNote($handoff, 'warn', 'Odcházíš bez předávky — ranní denní služba na 524 nastupuje až po tvém odchodu. Mezičas kryje kolega na 514.');
+    }
+  } else {
+    $prev = $gi > 0 ? ($days[$gi - 1] ?? null) : null;
+    $takeoverPeople = ($prev !== null && $prev['n'] !== null) ? [$P($prev['n'], 'n')] : [];
+    $takeover = array_merge(['time' => $me['startStr'], 'when' => 'Ráno', 'people' => $takeoverPeople], $noNote);
+    if ($me['preKind'] === '514'){
+      $takeover = $withNote($takeover, 'move', 'Začni na sousedním postu 514. Jakmile v ' . $d['d']['startStr'] . ' dorazí ' . $d['d']['person'] . ' (514), přesedni na svůj post 524.');
+    } elseif ($me['preKind'] === 'no'){
+      $takeover = $withNote($takeover, 'warn', 'Nastupuješ bez převzetí — předchozí služba na 524 (noční) už skončila. Mezičas do tvého příchodu kryje kolega na 514.');
+    }
+
+    $ok = $key === 'd' ? 'k' : 'd';
+    $alongside = ['show' => true, 'people' => $d[$ok] !== null ? [$P($d[$ok], $ok)] : []];
+
+    $handoff = array_merge(['time' => $me['endStr'], 'when' => 'Večer', 'people' => $d['n'] !== null ? [$P($d['n'], 'n')] : []], $noNote);
+    if ($me['postKind'] === '514'){
+      $handoff = $withNote($handoff, 'move', 'Až ve ' . $d['n']['startStr'] . ' dorazí ' . $d['n']['person'] . ' na noční, přesedni na sousední post 514 a dokonči tam směnu do ' . $me['endStr'] . '.');
+    } elseif ($me['postKind'] === 'no'){
+      $handoff = $withNote($handoff, 'warn', 'Odcházíš bez předávky — noční služba na 524 začíná až po tvém odchodu. Mezičas kryje kolega na 514.');
+    }
+  }
+
+  return [
+    'dateStr' => $d['date'], 'weekday' => $d['weekday'],
+    'me' => ['label' => $rm['label'], 'color' => $rm['color'], 'bg' => $rm['bg'], 'timesStr' => $timesStr],
+    'takeover' => $takeover, 'alongside' => $alongside, 'handoff' => $handoff,
+  ];
+}
+
+
+function renderPrintHeaderBar(string $title, string $subtitle, string $backHref = 'index.php', string $backLabel = '← Zpět do aplikace'): string{
   return '
   <div class="print-header no-print">
     <div>
@@ -465,7 +539,7 @@ function renderPrintHeaderBar(string $title, string $subtitle, string $backHref 
       <div class="print-subtitle">' . htmlspecialchars($subtitle) . '</div>
     </div>
     <div class="print-actions">
-      <a href="' . htmlspecialchars($backHref) . '">← Zpět do aplikace</a>
+      <a href="' . htmlspecialchars($backHref) . '">' . htmlspecialchars($backLabel) . '</a>
       <button onclick="window.print()">Vytisknout</button>
     </div>
   </div>';
@@ -531,13 +605,13 @@ function renderPrintComplete(array $model, string $rangeLabel): string{
 
 function renderPrintWorker(array $model, string $personName, string $rangeLabel, string $personId): string{
   $backHref = 'index.php?person=' . urlencode($personId);
-  $html = renderPrintHeaderBar('Rozpis služeb — ' . $personName, 'tiskové zobrazení · ' . $rangeLabel, $backHref);
+  $html = renderPrintHeaderBar('Rozpis služeb — ' . $personName, 'tiskové zobrazení · klikněte na řádek pro detail střídání · ' . $rangeLabel, $backHref);
 
-  $html .= '<table class="sheet"><thead><tr><th>Datum</th><th>Služba</th><th>Čas</th><th>Poznámky ke střídání</th></tr></thead><tbody>';
+  $html .= '<table class="sheet"><thead><tr><th>Datum</th><th>Služba</th><th>Čas</th><th>Poznámky ke střídání</th><th class="no-print"></th></tr></thead><tbody>';
 
   $roleLabels = ['d' => 'Dlouhá 514', 'k' => 'Krátká 524', 'n' => 'Noční'];
 
-  foreach ($model['dates'] as $day){
+  foreach ($model['dates'] as $gi => $day){
     foreach ($roleLabels as $roleKey => $roleLabel){
       $entry = $day[$roleKey];
 
@@ -557,17 +631,87 @@ function renderPrintWorker(array $model, string $personName, string $rangeLabel,
         if ($entry['postKind'] === 'no') $notes[] = 'Odchod bez předávky';
       }
 
-      $rowClass = $day['weekend'] ? ' class="weekend"' : '';
-      $html .= '<tr' . $rowClass . '>';
+      $detailHref = 'index.php?print=worker&person=' . urlencode($personId) . '&shift=' . urlencode($gi . $roleKey);
+      $rowClass = $day['weekend'] ? ' class="weekend row-link"' : ' class="row-link"';
+      $html .= '<tr' . $rowClass . ' onclick="location.href=&quot;' . htmlspecialchars($detailHref, ENT_QUOTES) . '&quot;">';
       $html .= '<td><b>' . htmlspecialchars($day['weekday']) . '</b> ' . htmlspecialchars($day['date']) . '</td>';
       $html .= '<td>' . htmlspecialchars($roleLabel) . '</td>';
       $html .= '<td><span style="color:' . $entry['startColor'] . '">' . htmlspecialchars($entry['startStr']) . '</span>–<span style="color:' . $entry['endColor'] . '">' . htmlspecialchars($entry['endStr']) . '</span></td>';
       $html .= '<td>' . ($notes ? htmlspecialchars(implode(' · ', $notes)) : '—') . '</td>';
+      $html .= '<td class="no-print row-link__chevron">›</td>';
       $html .= '</tr>';
     }
   }
 
   $html .= '</tbody></table>';
+
+  return $html;
+}
+
+
+function renderPrintPP(array $pp): string{
+  return '<div class="pdetail-pp" style="border-left-color:' . $pp['color'] . '; background:' . $pp['bg'] . ';">'
+    . '<div class="pdetail-pp__top"><span class="pdetail-pp__name">' . htmlspecialchars($pp['name']) . '</span>'
+    . '<span class="pdetail-pp__role" style="color:' . $pp['color'] . ';">' . htmlspecialchars($pp['role']) . '</span></div>'
+    . '<div class="pdetail-pp__times"><span style="color:' . $pp['startColor'] . ';">' . htmlspecialchars($pp['startStr']) . '</span>'
+    . ' ' . $pp['sep'] . ' '
+    . '<span style="color:' . $pp['endColor'] . ';">' . htmlspecialchars($pp['endStr']) . '</span></div>'
+    . '</div>';
+}
+
+
+function renderPrintDetailCard(string $badgeLabel, string $badgeColor, string $badgeBg, array $section): string{
+  $html = '<div class="pdetail-card">';
+  $html .= '<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap;">';
+  $html .= '<span class="pdetail-badge" style="color:' . $badgeColor . '; background:' . $badgeBg . ';">' . $badgeLabel . '</span>';
+  $html .= '<span class="pdetail-when">' . htmlspecialchars($section['when']) . ' · ' . htmlspecialchars($section['time']) . '</span>';
+  $html .= '</div>';
+
+  if ($section['hasNote']){
+    $html .= '<div class="pdetail-note" style="background:' . $section['noteBg'] . '; border-color:' . $section['noteBorder'] . '; color:' . $section['noteFg'] . ';">';
+    $html .= '<span class="pdetail-note__tag" style="color:' . $section['noteFg'] . '; border-color:' . $section['noteBorder'] . ';">' . ($section['noteMove'] ? '514' : '⊘') . '</span>';
+    $html .= htmlspecialchars($section['note']);
+    $html .= '</div>';
+  }
+
+  if (empty($section['people'])){
+    $html .= '<span class="print-empty">—</span>';
+  } else {
+    foreach ($section['people'] as $pp){
+      $html .= renderPrintPP($pp);
+    }
+  }
+
+  $html .= '</div>';
+
+  return $html;
+}
+
+
+function renderPrintDetail(array $detail, string $personName, string $personId, string $rangeLabel): string{
+  $backHref = 'index.php?print=worker&person=' . urlencode($personId);
+  $html = renderPrintHeaderBar('Detail střídání — ' . $personName, $detail['weekday'] . ' · ' . $detail['dateStr'] . ' · ' . $rangeLabel, $backHref, '← Zpět na Rozpis služeb');
+
+  $html .= '<div class="pdetail">';
+  $html .= '<div class="pdetail-me" style="border-left-color:' . $detail['me']['color'] . '; background:' . $detail['me']['bg'] . ';">';
+  $html .= '<div class="pdetail-me__date">' . htmlspecialchars($detail['weekday']) . ' · ' . htmlspecialchars($detail['dateStr']) . '</div>';
+  $html .= '<div class="pdetail-me__role" style="color:' . $detail['me']['color'] . ';">' . htmlspecialchars($detail['me']['label']) . '</div>';
+  $html .= '<div class="pdetail-me__times">' . htmlspecialchars($detail['me']['timesStr']) . '</div>';
+  $html .= '</div>';
+
+  $html .= renderPrintDetailCard('↓ PŘEBÍRÁŠ', '#0E7C66', '#DCF2EB', $detail['takeover']);
+
+  if ($detail['alongside']['show']){
+    $html .= '<div class="pdetail-card"><div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">';
+    $html .= '<span class="pdetail-badge" style="color:#1B5FBF; background:#E1ECFC;">↔ SPOLU VE SLUŽBĚ</span></div>';
+    foreach ($detail['alongside']['people'] as $pp){
+      $html .= renderPrintPP($pp);
+    }
+    $html .= '</div>';
+  }
+
+  $html .= renderPrintDetailCard('↑ PŘEDÁVÁŠ', '#9A5B00', '#FBEAD0', $detail['handoff']);
+  $html .= '</div>';
 
   return $html;
 }
@@ -596,6 +740,26 @@ function renderPrintPage(string $bodyHtml): void{
     .tag-514 { display:inline-block; border:1px solid #E6A3AE; color:#C0223F; background:#FBE1E5; font-size:10px; font-weight:700; padding:1px 5px; border-radius:5px; }
     .tag-no { display:inline-block; color:#8A5A00; font-size:10px; font-weight:700; }
     .print-footnote { font-size:11px; color:#4B5563; margin-top:12px; }
+    tr.row-link { cursor:pointer; }
+    tr.row-link:hover { background:#F5F7F9; }
+    tr.row-link:hover.weekend { background:#FFF0DA; }
+    .row-link__chevron { color:#8A96A2; font-weight:700; text-align:center; width:20px; }
+    .pdetail { display:flex; flex-direction:column; gap:12px; max-width:480px; }
+    .pdetail-me { border-left:4px solid; border-radius:8px; padding:12px 14px; }
+    .pdetail-me__date { font-size:12px; color:#4B5563; font-weight:600; }
+    .pdetail-me__role { font-size:15px; font-weight:700; margin-top:2px; }
+    .pdetail-me__times { font-size:13px; color:#1B2530; margin-top:2px; }
+    .pdetail-card { border:1px solid #E9EDF1; border-radius:8px; padding:12px 14px; }
+    .pdetail-badge { font-size:11px; font-weight:700; padding:3px 8px; border-radius:5px; }
+    .pdetail-when { font-size:12px; color:#4B5563; }
+    .pdetail-note { border:1px solid; border-radius:6px; padding:7px 9px; font-size:12px; margin-bottom:8px; display:flex; gap:6px; align-items:flex-start; }
+    .pdetail-note__tag { flex-shrink:0; font-size:10px; font-weight:700; background:#fff; border:1px solid; padding:1px 5px; border-radius:4px; }
+    .pdetail-pp { border-left:3px solid; border-radius:6px; padding:6px 9px; margin-top:6px; }
+    .pdetail-pp:first-of-type { margin-top:0; }
+    .pdetail-pp__top { display:flex; justify-content:space-between; gap:8px; font-size:13px; }
+    .pdetail-pp__name { font-weight:700; }
+    .pdetail-pp__role { font-size:11px; font-weight:600; }
+    .pdetail-pp__times { font-size:12px; color:#1B2530; margin-top:1px; }
     @media print {
       .no-print { display:none !important; }
       table.sheet { border:none !important; }
@@ -637,6 +801,25 @@ if ($printParam === 'worker'){
     http_response_code(400);
     header('Content-Type: text/plain; charset=utf-8');
     echo 'Chybí nebo neplatný parametr person.';
+    exit;
+  }
+
+  $shiftParam = $_GET['shift'] ?? null;
+
+  if ($shiftParam !== null && preg_match('/^(\d+)([dkn])$/', $shiftParam, $shiftMatches)){
+    $shiftGi = (int)$shiftMatches[1];
+    $shiftKey = $shiftMatches[2];
+    $shiftDay = $model['dates'][$shiftGi] ?? null;
+
+    if ($shiftDay !== null && $shiftDay[$shiftKey] !== null && $shiftDay[$shiftKey]['person'] === $personNameParam){
+      $detail = buildDetailModel($model, $shiftGi, $shiftKey);
+      renderPrintPage(renderPrintDetail($detail, $personNameParam, $personIdParam, $rangeLabel));
+      exit;
+    }
+
+    http_response_code(400);
+    header('Content-Type: text/plain; charset=utf-8');
+    echo 'Neplatný parametr shift.';
     exit;
   }
 
