@@ -1,0 +1,225 @@
+
+<!-- saved from url=(0069)https://cdp.simiways.cz/index.php?personId=15&date=2026-07-21&order=1 -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      padding: 12px;
+      font-size: 16px;
+    }
+
+    table {
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid black;
+      padding: 8px;
+      text-align: center;
+    }
+
+    .bad{
+      color: red;
+    }
+
+    .good{
+      color: green;
+    }
+
+    .issues{
+      color: blue;
+      font-style: italic;
+    }
+
+    .current{
+      background-color: #e6f2ff;
+    }
+
+    .weekend{
+      background-color: #ffe7e9;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin-bottom: 16px;
+    }
+
+    /* Date-grid wrapper scrolls both axes so sticky works in both directions */
+    .table-wrapper--grid {
+      max-height: calc(100dvh - 140px);
+      overflow-y: auto;
+    }
+
+    /* border-collapse: separate fixes border rendering on sticky cells */
+    .table-date-grid {
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    /* One-sided borders to avoid doubling with border-spacing: 0 */
+    .table-date-grid th,
+    .table-date-grid td {
+      border-top: none;
+      border-left: none;
+      border-right: 1px solid black;
+      border-bottom: 1px solid black;
+    }
+
+    .table-date-grid th:first-child,
+    .table-date-grid td:first-child {
+      border-left: 1px solid black;
+    }
+
+    .table-date-grid tr:first-child th {
+      border-top: 1px solid black;
+    }
+
+    /* Sticky header row (locks on vertical scroll within wrapper) */
+    .table-date-grid th {
+      position: sticky;
+      top: 0;
+      background: white;
+      z-index: 2;
+    }
+
+    /* Sticky date column (locks on horizontal scroll) */
+    .table-date-grid td:first-child {
+      position: sticky;
+      left: 0;
+      background: white;
+      z-index: 1;
+    }
+
+    /* Corner cell must be above both */
+    .table-date-grid th:first-child {
+      left: 0;
+      z-index: 3;
+    }
+
+    /* Preserve row background on sticky date cells */
+    .table-date-grid tr.weekend td:first-child {
+      background: #ffe7e9;
+    }
+
+    /* Sticky date column for person and handover views */
+    .table-sticky-date {
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    .table-sticky-date td {
+      border-top: none;
+      border-left: none;
+      border-right: 1px solid black;
+      border-bottom: 1px solid black;
+    }
+
+    .table-sticky-date tr:first-child td {
+      border-top: 1px solid black;
+    }
+
+    .table-sticky-date td:first-child {
+      position: sticky;
+      left: 0;
+      background: white;
+      border-left: 1px solid black;
+      font-weight: bold;
+      z-index: 1;
+    }
+
+    .table-sticky-date tr.current td:first-child {
+      background: #e6f2ff;
+    }
+
+    form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    select, button {
+      font-size: 16px;
+      padding: 6px 10px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .nav-links a {
+      padding: 6px 0;
+    }
+
+    @media (max-width: 480px) {
+      select {
+        width: 100%;
+      }
+      form label {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+
+<form method="get" style="margin-bottom: 20px;">
+    <label for="personId">Vyberte jméno pracovníka:</label>
+    <select name="personId" id="personId">
+                    <option value="">
+                            </option>
+                    <option value="5">
+                Honza            </option>
+                    <option value="15">
+                Ivona            </option>
+                    <option value="1">
+                Jana            </option>
+                    <option value="2">
+                Jitka            </option>
+                    <option value="14">
+                Káťa            </option>
+                    <option value="11">
+                Kuba            </option>
+                    <option value="18">
+                Lucka            </option>
+                    <option value="13">
+                Martin J.            </option>
+                    <option value="8">
+                Martin P.            </option>
+                    <option value="4">
+                Martina            </option>
+                    <option value="6">
+                Míra            </option>
+                    <option value="16">
+                Pavel B.            </option>
+                    <option value="17">
+                Pavol F.            </option>
+                    <option value="3">
+                Pepík            </option>
+                    <option value="7">
+                Tomáš            </option>
+                    <option value="12">
+                Veronika            </option>
+            </select>
+    <button type="submit">OK</button>
+</form>
+
+
+<div class="table-wrapper"><p>Ivona:</p><table class="table-sticky-date"><tbody><tr><td>čtvrtek 16.7.2026</td><td>krátká (524)</td><td>od 7:20 a <span class="bad">až do 19:05</span></td><td><a href="https://cdp.simiways.cz/index.php?date=2026-07-16&amp;order=2">detail střídání</a></td></tr><tr><td>pátek 17.7.2026</td><td>noční</td><td><span class="good">až od 19:30</span> a do 7:30</td><td><a href="https://cdp.simiways.cz/index.php?date=2026-07-17&amp;order=3">detail střídání</a></td></tr><tr><td>sobota 18.7.2026</td><td>noční</td><td><span class="good">až od 18:30</span> a do 7:30</td><td><a href="https://cdp.simiways.cz/index.php?date=2026-07-18&amp;order=3">detail střídání</a></td></tr><tr class="current"><td>úterý 21.7.2026</td><td>dlouhá (514)</td><td>od 6:25 a do 19:05</td><td><a href="https://cdp.simiways.cz/index.php?date=2026-07-21&amp;order=1">detail střídání</a></td></tr><tr><td>čtvrtek 23.7.2026</td><td>krátká (524)</td><td>od 7:20 a do 18:35</td><td><a href="https://cdp.simiways.cz/index.php?date=2026-07-23&amp;order=2">detail střídání</a></td></tr><tr><td>pátek 24.7.2026</td><td>noční</td><td>od 17:55 a do 7:30</td><td><a href="https://cdp.simiways.cz/index.php?date=2026-07-24&amp;order=3">detail střídání</a></td></tr><tr><td>středa 29.7.2026</td><td>dlouhá (514)</td><td><span class="good">až od 7:45</span> a do 19:05</td><td><a href="https://cdp.simiways.cz/index.php?date=2026-07-29&amp;order=1">detail střídání</a></td></tr><tr><td>pátek 31.7.2026</td><td>krátká (524)</td><td><span class="good">až od 7:45</span> a do 18:35</td><td><a href="https://cdp.simiways.cz/index.php?date=2026-07-31&amp;order=2">detail střídání</a></td></tr></tbody></table></div><hr>
+<div class="nav-links">
+  <a href="https://cdp.simiways.cz/index.php" onclick="if (history.length &gt; 1) history.back(); return false;">← zpět</a>
+  <a href="https://cdp.simiways.cz/index.php">Domů</a>
+  <a href="https://cdp.simiways.cz/index.php?complete=1">Kompletní směnář</a>
+</div>
+
+</body></html>
