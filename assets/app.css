@@ -106,7 +106,8 @@ button { font-family: inherit; }
   padding: 18px 22px;
   display: flex;
   align-items: center;
-  gap: 18px;
+  flex-wrap: wrap;
+  gap: 12px 18px;
 }
 
 .card-header--matrix {
@@ -151,18 +152,61 @@ button { font-family: inherit; }
   padding: 22px;
 }
 
+@media (max-width: 640px) {
+  .card-header > label,
+  .card-header__titles,
+  .print-link {
+    width: 100%;
+  }
+  .person-select {
+    width: 100%;
+    min-width: 0;
+  }
+  .print-link {
+    text-align: center;
+  }
+}
+
 /* ---------- Calendar grid ---------- */
 
-.cal-grid {
+.cal-scroll {
+  max-height: 70vh;
+  overflow: auto;
+}
+
+.cal-panes {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  width: max-content;
+  min-width: 100%;
+}
+
+.cal-weeks-col {
+  position: sticky;
+  left: 0;
+  z-index: 6;
+  flex: 0 0 84px;
+  width: 84px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #F3F5F8;
+}
+
+.cal-days-grid {
+  flex: 1 1 auto;
+  min-width: 0;
   display: grid;
-  grid-template-columns: 84px repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(92px, 1fr));
   gap: 6px;
 }
 
 .cal-corner {
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: 6;
+  height: 34px;
   background: #F3F5F8;
 }
 
@@ -170,6 +214,8 @@ button { font-family: inherit; }
   position: sticky;
   top: 0;
   z-index: 5;
+  height: 34px;
+  box-sizing: border-box;
   border-radius: 8px;
   padding: 8px 4px;
   text-align: center;
@@ -179,9 +225,8 @@ button { font-family: inherit; }
 }
 
 .cal-week-label {
-  position: sticky;
-  left: 0;
-  z-index: 2;
+  min-height: 88px;
+  box-sizing: border-box;
   background: #EEF1F5;
   border: 1px solid #E2E7EC;
   border-radius: 8px;
@@ -408,10 +453,15 @@ button { font-family: inherit; }
   padding: 24px 0;
 }
 
+.detail-scroll {
+  overflow-x: auto;
+}
+
 .detail-grid {
   display: grid;
-  grid-template-columns: minmax(240px, 340px) 1fr;
+  grid-template-columns: minmax(200px, 260px) 1fr;
   gap: 16px;
+  min-width: 480px;
 }
 
 .detail-me {
@@ -538,30 +588,32 @@ button { font-family: inherit; }
 
 .matrix-scroll {
   max-height: 70vh;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: auto;
 }
 
 .matrix-panes {
   display: flex;
   align-items: flex-start;
+  gap: 6px;
+  width: max-content;
+  min-width: 100%;
 }
 
 .matrix-names-col {
+  position: sticky;
+  left: 0;
+  z-index: 8;
   flex: 0 0 150px;
   width: 150px;
   display: flex;
   flex-direction: column;
   gap: 4px;
-}
-
-.matrix-days-scroll {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow-x: auto;
+  background: #F3F5F8;
 }
 
 .matrix-grid {
+  flex: 1 1 auto;
+  min-width: 0;
   display: grid;
   gap: 4px;
 }
@@ -569,9 +621,10 @@ button { font-family: inherit; }
 .matrix-corner {
   position: sticky;
   top: 0;
-  z-index: 3;
+  z-index: 7;
   height: 37px;
   background: #F3F5F8;
+  box-shadow: 0 4px 0 0 #F3F5F8;
 }
 
 .matrix-month {
@@ -586,12 +639,13 @@ button { font-family: inherit; }
   font-weight: 700;
   padding: 8px 6px;
   text-align: center;
+  box-shadow: 0 4px 0 0 #F3F5F8;
 }
 
 .matrix-worker-label {
   position: sticky;
   top: 41px;
-  z-index: 3;
+  z-index: 7;
   height: 49px;
   background: #1B2530;
   color: #fff;

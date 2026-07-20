@@ -410,7 +410,7 @@
     let inner;
     if (detail) {
       inner = (
-        '<div class="detail-grid">'
+        '<div class="detail-scroll"><div class="detail-grid">'
         + '<div class="detail-me" style="border-left-color:' + detail.me.color + ';">'
         + '<div class="detail-me__top" style="background:' + detail.me.bg + ';">'
         + '<div class="detail-me__date">' + esc(detail.weekday) + ' · ' + esc(detail.dateStr) + '</div>'
@@ -428,7 +428,7 @@
             + detail.alongside.people.map(renderPPRow).join('') + '</div>'
           : '')
         + renderDetailCard('↑ PŘEDÁVÁŠ', '#9A5B00', '#FBEAD0', detail.handoff)
-        + '</div></div>'
+        + '</div></div></div>'
       );
     } else {
       inner = '<div class="detail-placeholder">Klikněte na směnu v kalendáři výše a zobrazí se detail střídání.</div>';
@@ -451,16 +451,18 @@
       '<option value="' + esc(n) + '"' + (n === person ? ' selected' : '') + '>' + esc(n) + '</option>'
     )).join('');
 
-    const weekdayCells = WEEKDAYS.map((w) => (
+    const weekdayHeaderCells = WEEKDAYS.map((w) => (
       '<div class="cal-weekday-cell" style="background:' + w.bg + '; color:' + w.color + ';">' + w.label + '</div>'
     )).join('');
 
-    const weekCells = calendar.weeks.map((week) => {
-      const label = '<div class="cal-week-label"><span class="cal-week-label__range">' + esc(week.label) + '</span>'
-        + '<span class="cal-week-label__month">' + esc(week.sub) + '</span></div>';
-      const days = week.days.map((cell) => renderCalDayCell(cell, selId)).join('');
-      return label + days;
-    }).join('');
+    const weekLabelCells = calendar.weeks.map((week) => (
+      '<div class="cal-week-label"><span class="cal-week-label__range">' + esc(week.label) + '</span>'
+      + '<span class="cal-week-label__month">' + esc(week.sub) + '</span></div>'
+    )).join('');
+
+    const dayCells = calendar.weeks.map((week) => (
+      week.days.map((cell) => renderCalDayCell(cell, selId)).join('')
+    )).join('');
 
     return (
       '<div class="card">'
@@ -475,7 +477,10 @@
       + '<a class="print-link" href="' + printHref + '" title="Úsporné zobrazení vhodné pro tisk">🖨 Tiskové zobrazení</a>'
       + '</div>'
       + '<div class="card-body">'
-      + '<div class="cal-grid"><div class="cal-corner"></div>' + weekdayCells + weekCells + '</div>'
+      + '<div class="cal-scroll"><div class="cal-panes">'
+      + '<div class="cal-weeks-col"><div class="cal-corner"></div>' + weekLabelCells + '</div>'
+      + '<div class="cal-days-grid">' + weekdayHeaderCells + dayCells + '</div>'
+      + '</div></div>'
       + renderLegend('lg')
       + '</div>'
       + renderDetailPanel(detail)
@@ -541,9 +546,9 @@
       + '</div>'
       + '<div class="matrix-scroll"><div class="matrix-panes">'
       + '<div class="matrix-names-col"><div class="matrix-corner"></div><div class="matrix-worker-label">PRACOVNÍK</div>' + nameCells + '</div>'
-      + '<div class="matrix-days-scroll"><div class="matrix-grid" style="grid-template-columns: repeat(' + n + ', 66px);">'
+      + '<div class="matrix-grid" style="grid-template-columns: repeat(' + n + ', 66px);">'
       + monthHeaders + dayHeaders + dayRows
-      + '</div></div>'
+      + '</div>'
       + '</div></div>'
       + renderLegend('sm')
       + '</div>'
@@ -552,9 +557,23 @@
 
   function renderApp() {
     const app = document.getElementById('app');
+
+    const prevScroll = app.querySelector('.cal-scroll, .matrix-scroll');
+    const prevClass = prevScroll ? (prevScroll.classList.contains('cal-scroll') ? 'cal-scroll' : 'matrix-scroll') : null;
+    const scrollLeft = prevScroll ? prevScroll.scrollLeft : 0;
+    const scrollTop = prevScroll ? prevScroll.scrollTop : 0;
+
     app.innerHTML = renderHeader() + '<main class="app-main">'
       + (state.view === 'calendar' ? renderCalendarView() : renderMatrixView())
       + '</main>';
+
+    if (prevClass) {
+      const nextScroll = app.querySelector('.' + prevClass);
+      if (nextScroll) {
+        nextScroll.scrollLeft = scrollLeft;
+        nextScroll.scrollTop = scrollTop;
+      }
+    }
   }
 
   const app = document.getElementById('app');
