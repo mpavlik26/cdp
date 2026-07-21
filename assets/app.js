@@ -88,7 +88,7 @@
 
       return {
         blank: false, gi, num: d.num, monthShort: d.monthShort, firstOfMonth: d.firstOfMonth, showNum: true,
-        clickable, selKey, labelTop: isNight, id: clickable ? (refGi + selKey) : null,
+        clickable, selKey, id: clickable ? (refGi + selKey) : null,
         dowIdx: (d.dow + 6) % 7,
         today: d.today, weekend: d.weekend,
         empty, isDay, isNight, hasEndPrev,
@@ -108,7 +108,7 @@
   }
 
   const BLANK_CELL = {
-    blank: true, clickable: false, labelTop: false, showNum: false,
+    blank: true, clickable: false, showNum: false,
     baseBg: '#EAEEF2', outline: 'none', firstOfMonth: false, today: false,
     isDay: false, isNight: false, hasEndPrev: false, empty: false,
     num: '', monthShort: '',
@@ -340,7 +340,7 @@
     let html = '<div class="' + cls + '" style="' + style + '"' + attrs + '>';
 
     if (selected) {
-      html += '<span class="badge-detail" style="' + (cell.labelTop ? 'top:5px;' : 'bottom:5px;') + '">DETAIL ↓</span>';
+      html += '<span class="badge-detail">DETAIL ↓</span>';
     }
     if (cell.showNum) html += '<span class="day-num">' + cell.num + '</span>';
     if (cell.firstOfMonth) html += '<span class="badge-first">' + esc(cell.monthShort) + '</span>';
@@ -474,7 +474,7 @@
       + '<div class="card-header__titles">'
       + '<div class="view-eyebrow">MŮJ SMĚNÁŘ</div>'
       + '</div>'
-      + '<a class="print-link" href="' + printHref + '" title="Úsporné zobrazení vhodné pro tisk">🖨 Tiskové zobrazení</a>'
+      + '<a class="print-link" href="' + printHref + '" title="Úsporné zobrazení vhodné pro tisk">🖨 Kompaktní (tiskové) zobrazení</a>'
       + '</div>'
       + '<div class="card-body">'
       + '<div class="cal-scroll"><div class="cal-panes">'
@@ -542,7 +542,7 @@
       + '<div class="card-header__titles">'
       + '<div class="view-eyebrow">KOMPLETNÍ SMĚNÁŘ</div>'
       + '</div>'
-      + '<a class="print-link" href="index.php?print=complete" title="Úsporné zobrazení vhodné pro tisk">🖨 Tiskové zobrazení</a>'
+      + '<a class="print-link" href="index.php?print=complete" title="Úsporné zobrazení vhodné pro tisk">🖨 Kompaktní (tiskové) zobrazení</a>'
       + '</div>'
       + '<div class="matrix-scroll"><div class="matrix-panes">'
       + '<div class="matrix-names-col"><div class="matrix-corner"></div><div class="matrix-worker-label">PRACOVNÍK</div>' + nameCells + '</div>'

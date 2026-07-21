@@ -268,9 +268,9 @@ button { font-family: inherit; }
 
 .day-num {
   position: absolute;
-  top: 5px;
+  top: 4px;
   left: 7px;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
   color: #6B7684;
   z-index: 3;
@@ -290,6 +290,7 @@ button { font-family: inherit; }
 
 .badge-detail {
   position: absolute;
+  top: 5px;
   right: 6px;
   background: #1B2530;
   color: #fff;
@@ -313,7 +314,7 @@ button { font-family: inherit; }
 /* day/short shift block */
 .shift-block {
   position: absolute;
-  top: 20px;
+  top: 24px;
   bottom: 4px;
   left: 3px;
   right: 3px;
@@ -395,7 +396,7 @@ button { font-family: inherit; }
 }
 
 .night-block--top {
-  top: 19px;
+  top: 23px;
   border-bottom: 2px solid #F3F5F8;
 }
 
@@ -603,8 +604,8 @@ button { font-family: inherit; }
   position: sticky;
   left: 0;
   z-index: 8;
-  flex: 0 0 150px;
-  width: 150px;
+  flex: 0 0 104px;
+  width: 104px;
   display: flex;
   flex-direction: column;
   gap: 4px;
