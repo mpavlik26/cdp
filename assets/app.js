@@ -482,9 +482,21 @@
     );
   }
 
-  function renderCompactDetail(detail, sel) {
+  function renderCompactPagerBtn(label, shift) {
+    return shift
+      ? '<button type="button" class="pdetail-pager__btn" data-action="cell-toggle" data-id="' + shift.id + '">' + label + '</button>'
+      : '<span class="pdetail-pager__btn pdetail-pager__btn--disabled">' + label + '</span>';
+  }
+
+  function renderCompactDetail(detail, sel, prevShift, nextShift) {
     return (
-      '<button type="button" class="pdetail-back" data-action="cell-toggle" data-id="' + sel.id + '">‹ Zpět na seznam</button>'
+      '<div class="pdetail-nav">'
+      + '<button type="button" class="pdetail-back" data-action="cell-toggle" data-id="' + sel.id + '">‹ Zpět na seznam směn</button>'
+      + '<div class="pdetail-pager">'
+      + renderCompactPagerBtn('‹ Předchozí', prevShift)
+      + renderCompactPagerBtn('Další ›', nextShift)
+      + '</div>'
+      + '</div>'
       + '<div class="pdetail">'
       + '<div class="pdetail-me" style="border-left-color:' + detail.me.color + '; background:' + detail.me.bg + ';">'
       + '<div class="pdetail-me__date">' + esc(detail.weekday) + ' · ' + esc(detail.dateStr) + '</div>'
@@ -548,7 +560,10 @@
 
     if (isCompact) {
       if (sel) {
-        bodyHtml = '<div class="card-body">' + renderCompactDetail(detail, sel) + '</div>';
+        const selIndex = shifts.findIndex((s) => s.id === sel.id);
+        const prevShift = selIndex > 0 ? shifts[selIndex - 1] : null;
+        const nextShift = selIndex < shifts.length - 1 ? shifts[selIndex + 1] : null;
+        bodyHtml = '<div class="card-body">' + renderCompactDetail(detail, sel, prevShift, nextShift) + '</div>';
       } else {
         const tableHtml = shifts.length
           ? '<table class="compact-table"><thead><tr><th>Datum</th><th>Služba</th><th>Čas</th><th>Poznámky ke střídání</th>'
@@ -762,7 +777,11 @@
       renderApp();
     } else if (action === 'cell-toggle') {
       const id = el.getAttribute('data-id');
-      state.selId = state.selId === id ? null : id;
+      const opening = state.selId !== id;
+      state.selId = opening ? id : null;
+      if (opening && state.displayMode === 'compact') {
+        history.pushState({ selId: id }, '');
+      }
       renderApp();
     } else if (action === 'name-nav') {
       state.view = 'calendar';
@@ -781,6 +800,11 @@
       state.selId = null;
       renderApp();
     }
+  });
+
+  window.addEventListener('popstate', (e) => {
+    state.selId = (e.state && e.state.selId) || null;
+    renderApp();
   });
 
   renderApp();

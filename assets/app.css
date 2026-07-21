@@ -910,17 +910,51 @@ button { font-family: inherit; }
 
 /* ---------- Compact detail (replaces list, mirrors print detail page) ---------- */
 
+.pdetail-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
 .pdetail-back {
   all: unset;
   cursor: pointer;
   color: #1E4FBF;
   font-size: 13px;
   font-weight: 700;
-  margin-bottom: 12px;
   display: inline-block;
 }
 .pdetail-back:hover {
   text-decoration: underline;
+}
+
+.pdetail-pager {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+
+.pdetail-pager__btn {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1B2530;
+  background: #ECEFF2;
+  border-radius: 7px;
+  padding: 7px 12px;
+  white-space: nowrap;
+}
+.pdetail-pager__btn:hover {
+  background: #E1ECFC;
+}
+.pdetail-pager__btn--disabled {
+  cursor: default;
+  color: #B7C0CA;
+  background: #F5F7F9;
 }
 
 .pdetail {
