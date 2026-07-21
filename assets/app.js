@@ -24,15 +24,15 @@
     { label: 'Ne', bg: '#FFF3E6', color: '#9A5B00' },
   ];
 
-  const personIdByName = {};
-  Object.keys(CONFIG.personIds || {}).forEach((id) => {
-    personIdByName[CONFIG.personIds[id]] = id;
-  });
+  function computeInitialDisplayMode() {
+    return window.matchMedia('(max-width: 640px)').matches ? 'compact' : 'rich';
+  }
 
   const state = {
     view: CONFIG.initialView === 'calendar' ? 'calendar' : 'matrix',
     person: CONFIG.initialPerson || DATA.people[0] || null,
     selId: null,
+    displayMode: computeInitialDisplayMode(),
   };
 
   function esc(s) {
@@ -152,10 +152,11 @@
           const night = key === 'n';
           shifts.push({
             id: gi + key, gi, key,
-            weekday: day.weekday, dow: day.dow, dateStr: day.date, night,
+            weekday: day.weekday, dow: day.dow, dateStr: day.date, night, weekend: day.weekend,
             typeLabel: rm.label, code: rm.code, accent: rm.color, tint: rm.bg,
             startStr: a.startStr, endStr: a.endStr, startColor: a.startColor, endColor: a.endColor,
             timesStr: night ? (a.startStr + ' → ' + a.endStr) : (a.startStr + ' – ' + a.endStr),
+            preKind: a.preKind, postKind: a.postKind,
           });
         }
       });
@@ -326,6 +327,15 @@
     return '<div class="legend"><span style="font-weight:700; color:#1B2530;">Legenda:</span>' + items.join('') + '</div>';
   }
 
+  function renderDisplayToggle() {
+    const richLabel = 'Kalendář';
+    const mkBtn = (mode, label) => (
+      '<button type="button" class="mode-btn' + (state.displayMode === mode ? ' mode-btn--active' : '')
+      + '" data-action="mode" data-mode="' + mode + '">' + esc(label) + '</button>'
+    );
+    return '<div class="mode-toggle">' + mkBtn('rich', richLabel) + mkBtn('compact', 'Řádkový') + '</div>';
+  }
+
   function renderCalDayCell(cell, selId) {
     if (cell.blank) {
       return '<div class="cal-day cal-day--blank"></div>';
@@ -436,33 +446,156 @@
     return '<div class="detail-panel"><div class="detail-panel__title">DETAIL STŘÍDÁNÍ</div>' + inner + '</div>';
   }
 
+  function renderCompactPP(pp) {
+    return (
+      '<div class="pdetail-pp" style="border-left-color:' + pp.color + '; background:' + pp.bg + ';">'
+      + '<div class="pdetail-pp__top"><span class="pdetail-pp__name">' + esc(pp.name) + '</span>'
+      + '<span class="pdetail-pp__role" style="color:' + pp.color + ';">' + esc(pp.role) + '</span></div>'
+      + '<div class="pdetail-pp__times"><span style="color:' + pp.startColor + ';">' + esc(pp.startStr) + '</span>'
+      + ' ' + pp.sep + ' '
+      + '<span style="color:' + pp.endColor + ';">' + esc(pp.endStr) + '</span></div>'
+      + '</div>'
+    );
+  }
+
+  function renderCompactNote(section) {
+    if (!section.hasNote) return '';
+    const tag = section.noteMove ? '514' : '⊘';
+    return (
+      '<div class="pdetail-note" style="background:' + section.noteBg + '; border-color:' + section.noteBorder + '; color:' + section.noteFg + ';">'
+      + '<span class="pdetail-note__tag" style="color:' + section.noteFg + '; border-color:' + section.noteBorder + ';">' + tag + '</span>'
+      + esc(section.note)
+      + '</div>'
+    );
+  }
+
+  function renderCompactDetailCard(badgeLabel, badgeColor, badgeBg, section) {
+    return (
+      '<div class="pdetail-card">'
+      + '<div class="pdetail-card__head">'
+      + '<span class="pdetail-badge" style="color:' + badgeColor + '; background:' + badgeBg + ';">' + badgeLabel + '</span>'
+      + '<span class="pdetail-when">' + esc(section.when) + ' · ' + esc(section.time) + '</span>'
+      + '</div>'
+      + renderCompactNote(section)
+      + (section.people.length ? section.people.map(renderCompactPP).join('') : '<span class="compact-empty">—</span>')
+      + '</div>'
+    );
+  }
+
+  function renderCompactPagerBtn(label, shift) {
+    return shift
+      ? '<button type="button" class="pdetail-pager__btn" data-action="cell-toggle" data-id="' + shift.id + '">' + label + '</button>'
+      : '<span class="pdetail-pager__btn pdetail-pager__btn--disabled">' + label + '</span>';
+  }
+
+  function renderCompactDetail(detail, sel, prevShift, nextShift) {
+    return (
+      '<div class="pdetail-nav">'
+      + '<button type="button" class="pdetail-back" data-action="cell-toggle" data-id="' + sel.id + '">‹ Zpět na seznam směn</button>'
+      + '<div class="pdetail-pager">'
+      + renderCompactPagerBtn('‹ Předchozí', prevShift)
+      + renderCompactPagerBtn('Další ›', nextShift)
+      + '</div>'
+      + '</div>'
+      + '<div class="pdetail">'
+      + '<div class="pdetail-me" style="border-left-color:' + detail.me.color + '; background:' + detail.me.bg + ';">'
+      + '<div class="pdetail-me__date">' + esc(detail.weekday) + ' · ' + esc(detail.dateStr) + '</div>'
+      + '<div class="pdetail-me__role" style="color:' + detail.me.color + ';">' + esc(detail.me.label) + '</div>'
+      + '<div class="pdetail-me__times">' + esc(detail.me.timesStr) + '</div>'
+      + '</div>'
+      + renderCompactDetailCard('↓ PŘEBÍRÁŠ', '#0E7C66', '#DCF2EB', detail.takeover)
+      + (detail.alongside.show
+        ? '<div class="pdetail-card"><div class="pdetail-card__head">'
+          + '<span class="pdetail-badge" style="color:#1B5FBF; background:#E1ECFC;">↔ SPOLU VE SLUŽBĚ</span></div>'
+          + detail.alongside.people.map(renderCompactPP).join('') + '</div>'
+        : '')
+      + renderCompactDetailCard('↑ PŘEDÁVÁŠ', '#9A5B00', '#FBEAD0', detail.handoff)
+      + '</div>'
+    );
+  }
+
+  function buildShiftNotes(shift) {
+    const notes = [];
+    if (shift.key === 'k') {
+      if (shift.preKind === '514') notes.push('Začátek na postu 514');
+      if (shift.postKind === '514') notes.push('Konec na postu 514');
+    }
+    if (shift.key === 'k' || shift.key === 'n') {
+      if (shift.preKind === 'no') notes.push('Nástup bez převzetí');
+      if (shift.postKind === 'no') notes.push('Odchod bez předávky');
+    }
+    return notes;
+  }
+
+  function renderCompactWorkerRow(shift, selId) {
+    const selected = shift.id === selId;
+    const notes = buildShiftNotes(shift);
+    const rowCls = 'compact-table__row' + (shift.weekend ? ' weekend' : '') + (selected ? ' compact-table__row--selected' : '');
+
+    return (
+      '<tr class="' + rowCls + '" data-action="cell-toggle" data-id="' + shift.id + '">'
+      + '<td><b>' + esc(shift.weekday) + '</b> ' + esc(shift.dateStr) + '</td>'
+      + '<td>' + esc(shift.typeLabel) + '</td>'
+      + '<td><span style="color:' + shift.startColor + ';">' + esc(shift.startStr) + '</span>–'
+      + '<span style="color:' + shift.endColor + ';">' + esc(shift.endStr) + '</span></td>'
+      + '<td>' + (notes.length ? esc(notes.join(' · ')) : '—') + '</td>'
+      + '<td class="compact-table__chevron">' + (selected ? '▾' : '›') + '</td>'
+      + '</tr>'
+    );
+  }
+
   function renderCalendarView() {
     const person = state.person;
     const shifts = buildWorkerShifts(person);
     const sel = shifts.find((s) => s.id === state.selId) || null;
     const selId = sel ? sel.id : null;
     const detail = sel ? buildDetail(sel) : null;
-    const calendar = buildCalendar(person);
-
-    const printId = personIdByName[person];
-    const printHref = 'index.php?print=worker&person=' + encodeURIComponent(printId != null ? printId : '');
+    const isCompact = state.displayMode === 'compact';
 
     const peopleOptions = DATA.people.map((n) => (
       '<option value="' + esc(n) + '"' + (n === person ? ' selected' : '') + '>' + esc(n) + '</option>'
     )).join('');
 
-    const weekdayHeaderCells = WEEKDAYS.map((w) => (
-      '<div class="cal-weekday-cell" style="background:' + w.bg + '; color:' + w.color + ';">' + w.label + '</div>'
-    )).join('');
+    let bodyHtml;
 
-    const weekLabelCells = calendar.weeks.map((week) => (
-      '<div class="cal-week-label"><span class="cal-week-label__range">' + esc(week.label) + '</span>'
-      + '<span class="cal-week-label__month">' + esc(week.sub) + '</span></div>'
-    )).join('');
+    if (isCompact) {
+      if (sel) {
+        const selIndex = shifts.findIndex((s) => s.id === sel.id);
+        const prevShift = selIndex > 0 ? shifts[selIndex - 1] : null;
+        const nextShift = selIndex < shifts.length - 1 ? shifts[selIndex + 1] : null;
+        bodyHtml = '<div class="card-body">' + renderCompactDetail(detail, sel, prevShift, nextShift) + '</div>';
+      } else {
+        const tableHtml = shifts.length
+          ? '<table class="compact-table"><thead><tr><th>Datum</th><th>Služba</th><th>Čas</th><th>Poznámky ke střídání</th>'
+            + '<th class="compact-table__chevron-col"></th></tr></thead><tbody>'
+            + shifts.map((s) => renderCompactWorkerRow(s, selId)).join('') + '</tbody></table>'
+          : '<div class="detail-placeholder">Žádné směny v tomto období.</div>';
+        bodyHtml = '<div class="card-body"><div class="compact-table-scroll">' + tableHtml + '</div></div>';
+      }
+    } else {
+      const calendar = buildCalendar(person);
 
-    const dayCells = calendar.weeks.map((week) => (
-      week.days.map((cell) => renderCalDayCell(cell, selId)).join('')
-    )).join('');
+      const weekdayHeaderCells = WEEKDAYS.map((w) => (
+        '<div class="cal-weekday-cell" style="background:' + w.bg + '; color:' + w.color + ';">' + w.label + '</div>'
+      )).join('');
+
+      const weekLabelCells = calendar.weeks.map((week) => (
+        '<div class="cal-week-label"><span class="cal-week-label__range">' + esc(week.label) + '</span>'
+        + '<span class="cal-week-label__month">' + esc(week.sub) + '</span></div>'
+      )).join('');
+
+      const dayCells = calendar.weeks.map((week) => (
+        week.days.map((cell) => renderCalDayCell(cell, selId)).join('')
+      )).join('');
+
+      bodyHtml = '<div class="card-body">'
+        + '<div class="cal-scroll"><div class="cal-panes">'
+        + '<div class="cal-weeks-col"><div class="cal-corner"></div>' + weekLabelCells + '</div>'
+        + '<div class="cal-days-grid">' + weekdayHeaderCells + dayCells + '</div>'
+        + '</div></div>'
+        + renderLegend('lg')
+        + '</div>';
+    }
 
     return (
       '<div class="card">'
@@ -474,16 +607,10 @@
       + '<div class="card-header__titles">'
       + '<div class="view-eyebrow">MŮJ SMĚNÁŘ</div>'
       + '</div>'
-      + '<a class="print-link" href="' + printHref + '" title="Úsporné zobrazení vhodné pro tisk">🖨 Kompaktní (tiskové) zobrazení</a>'
+      + renderDisplayToggle()
       + '</div>'
-      + '<div class="card-body">'
-      + '<div class="cal-scroll"><div class="cal-panes">'
-      + '<div class="cal-weeks-col"><div class="cal-corner"></div>' + weekLabelCells + '</div>'
-      + '<div class="cal-days-grid">' + weekdayHeaderCells + dayCells + '</div>'
-      + '</div></div>'
-      + renderLegend('lg')
-      + '</div>'
-      + renderDetailPanel(detail)
+      + bodyHtml
+      + (isCompact ? '' : renderDetailPanel(detail))
       + '</div>'
     );
   }
@@ -515,26 +642,94 @@
     return html;
   }
 
+  function renderCompactCompleteCell(entry, roleKey) {
+    if (!entry) {
+      return '<span class="compact-empty">—</span>';
+    }
+
+    const pre514 = roleKey === 'k' && entry.preKind === '514';
+    const preNo = (roleKey === 'k' || roleKey === 'n') && entry.preKind === 'no';
+    const post514 = roleKey === 'k' && entry.postKind === '514';
+    const postNo = (roleKey === 'k' || roleKey === 'n') && entry.postKind === 'no';
+
+    let html = '<button type="button" class="compact-table__name-btn" data-action="name-nav" data-person="'
+      + esc(entry.person) + '">' + esc(entry.person) + '</button><br>'
+      + '<span style="color:' + entry.startColor + ';">' + esc(entry.startStr) + '</span>–'
+      + '<span style="color:' + entry.endColor + ';">' + esc(entry.endStr) + '</span>';
+
+    if (pre514) html += '<br><span class="tag-514">514 na začátku</span>';
+    if (post514) html += '<br><span class="tag-514">514 na konci</span>';
+    if (preNo) html += '<br><span class="tag-no">⊘ bez převzetí</span>';
+    if (postNo) html += '<br><span class="tag-no">⊘ bez předávky</span>';
+
+    return html;
+  }
+
+  function renderCompactCompleteDayRow(day) {
+    return (
+      '<tr' + (day.weekend ? ' class="weekend"' : '') + '>'
+      + '<td><b>' + esc(day.weekday) + '</b> ' + esc(day.date) + '</td>'
+      + '<td>' + renderCompactCompleteCell(day.d, 'd') + '</td>'
+      + '<td>' + renderCompactCompleteCell(day.k, 'k') + '</td>'
+      + '<td>' + renderCompactCompleteCell(day.n, 'n') + '</td>'
+      + '</tr>'
+    );
+  }
+
+  function renderCompactCompleteView() {
+    const days = DATA.dates;
+    let acc = 0;
+
+    const tablesHtml = DATA.months.map((mo) => {
+      const groupDays = days.slice(acc, acc + mo.span);
+      acc += mo.span;
+      const rowsHtml = groupDays.map(renderCompactCompleteDayRow).join('');
+      return (
+        '<table class="compact-table"><caption>' + esc(mo.label) + '</caption>'
+        + '<thead><tr><th>Datum</th><th>Dlouhá 514</th><th>Krátká 524</th><th>Noční</th></tr></thead>'
+        + '<tbody>' + rowsHtml + '</tbody></table>'
+      );
+    }).join('');
+
+    return '<div class="card-body"><div class="compact-table-scroll">' + tablesHtml + '</div></div>';
+  }
+
   function renderMatrixView() {
-    const matrix = buildMatrix();
-    const n = DATA.dates.length;
+    const isCompact = state.displayMode === 'compact';
 
-    const monthHeaders = matrix.months.map((mo) => (
-      '<div class="matrix-month" style="grid-column: span ' + mo.span + ';">' + esc(mo.label) + '</div>'
-    )).join('');
+    let bodyHtml;
 
-    const dayHeaders = matrix.header.map((h) => (
-      '<div class="matrix-day-header" style="background:' + h.bg + '; border:' + h.ring + '; border-left:' + h.borderLeft + ';">'
-      + '<div class="matrix-day-header__dow">' + h.dow + '</div>'
-      + '<div class="matrix-day-header__num">' + h.n + '</div></div>'
-    )).join('');
+    if (isCompact) {
+      bodyHtml = renderCompactCompleteView();
+    } else {
+      const matrix = buildMatrix();
+      const n = DATA.dates.length;
 
-    const nameCells = matrix.rows.map((row) => (
-      '<div class="matrix-name-cell"><button type="button" class="matrix-name-link" data-action="name-nav" data-person="'
-      + esc(row.name) + '">' + esc(row.name) + '</button></div>'
-    )).join('');
+      const monthHeaders = matrix.months.map((mo) => (
+        '<div class="matrix-month" style="grid-column: span ' + mo.span + ';">' + esc(mo.label) + '</div>'
+      )).join('');
 
-    const dayRows = matrix.rows.map((row) => row.cells.map(renderMatrixCell).join('')).join('');
+      const dayHeaders = matrix.header.map((h) => (
+        '<div class="matrix-day-header" style="background:' + h.bg + '; border:' + h.ring + '; border-left:' + h.borderLeft + ';">'
+        + '<div class="matrix-day-header__dow">' + h.dow + '</div>'
+        + '<div class="matrix-day-header__num">' + h.n + '</div></div>'
+      )).join('');
+
+      const nameCells = matrix.rows.map((row) => (
+        '<div class="matrix-name-cell"><button type="button" class="matrix-name-link" data-action="name-nav" data-person="'
+        + esc(row.name) + '">' + esc(row.name) + '</button></div>'
+      )).join('');
+
+      const dayRows = matrix.rows.map((row) => row.cells.map(renderMatrixCell).join('')).join('');
+
+      bodyHtml = '<div class="matrix-scroll"><div class="matrix-panes">'
+        + '<div class="matrix-names-col"><div class="matrix-corner"></div><div class="matrix-worker-label">PRACOVNÍK</div>' + nameCells + '</div>'
+        + '<div class="matrix-grid" style="grid-template-columns: repeat(' + n + ', 66px);">'
+        + monthHeaders + dayHeaders + dayRows
+        + '</div>'
+        + '</div></div>'
+        + renderLegend('sm');
+    }
 
     return (
       '<div class="card">'
@@ -542,15 +737,9 @@
       + '<div class="card-header__titles">'
       + '<div class="view-eyebrow">KOMPLETNÍ SMĚNÁŘ</div>'
       + '</div>'
-      + '<a class="print-link" href="index.php?print=complete" title="Úsporné zobrazení vhodné pro tisk">🖨 Kompaktní (tiskové) zobrazení</a>'
+      + renderDisplayToggle()
       + '</div>'
-      + '<div class="matrix-scroll"><div class="matrix-panes">'
-      + '<div class="matrix-names-col"><div class="matrix-corner"></div><div class="matrix-worker-label">PRACOVNÍK</div>' + nameCells + '</div>'
-      + '<div class="matrix-grid" style="grid-template-columns: repeat(' + n + ', 66px);">'
-      + monthHeaders + dayHeaders + dayRows
-      + '</div>'
-      + '</div></div>'
-      + renderLegend('sm')
+      + bodyHtml
       + '</div>'
     );
   }
@@ -588,12 +777,19 @@
       renderApp();
     } else if (action === 'cell-toggle') {
       const id = el.getAttribute('data-id');
-      state.selId = state.selId === id ? null : id;
+      const opening = state.selId !== id;
+      state.selId = opening ? id : null;
+      if (opening && state.displayMode === 'compact') {
+        history.pushState({ selId: id }, '');
+      }
       renderApp();
     } else if (action === 'name-nav') {
       state.view = 'calendar';
       state.person = el.getAttribute('data-person');
       state.selId = null;
+      renderApp();
+    } else if (action === 'mode') {
+      state.displayMode = el.getAttribute('data-mode');
       renderApp();
     }
   });
@@ -604,6 +800,11 @@
       state.selId = null;
       renderApp();
     }
+  });
+
+  window.addEventListener('popstate', (e) => {
+    state.selId = (e.state && e.state.selId) || null;
+    renderApp();
   });
 
   renderApp();
