@@ -28,9 +28,41 @@
     return window.matchMedia('(max-width: 640px)').matches ? 'compact' : 'rich';
   }
 
+  const LAST_PERSON_KEY = 'cdp:lastPerson';
+
+  function loadLastPerson() {
+    try {
+      return window.localStorage.getItem(LAST_PERSON_KEY);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function storeLastPerson(name) {
+    try {
+      window.localStorage.setItem(LAST_PERSON_KEY, name);
+    } catch (e) {
+      // ignore (e.g. storage disabled)
+    }
+  }
+
+  function computeInitialPersonState() {
+    if (CONFIG.initialPerson) {
+      storeLastPerson(CONFIG.initialPerson);
+      return { person: CONFIG.initialPerson, preferred: true };
+    }
+    const lastPerson = loadLastPerson();
+    if (lastPerson && DATA.people.indexOf(lastPerson) !== -1) {
+      return { person: lastPerson, preferred: true };
+    }
+    return { person: DATA.people[0] || null, preferred: false };
+  }
+
+  const initialPersonState = computeInitialPersonState();
+
   const state = {
-    view: CONFIG.initialView === 'calendar' ? 'calendar' : 'matrix',
-    person: CONFIG.initialPerson || DATA.people[0] || null,
+    view: initialPersonState.preferred ? 'calendar' : 'matrix',
+    person: initialPersonState.person,
     selId: null,
     displayMode: computeInitialDisplayMode(),
   };
@@ -796,6 +828,7 @@
       state.view = 'calendar';
       state.person = el.getAttribute('data-person');
       state.selId = null;
+      storeLastPerson(state.person);
       renderApp();
     } else if (action === 'mode') {
       state.displayMode = el.getAttribute('data-mode');
@@ -807,6 +840,7 @@
     if (e.target.matches('[data-role="person-select"]')) {
       state.person = e.target.value;
       state.selId = null;
+      storeLastPerson(state.person);
       renderApp();
     }
   });
