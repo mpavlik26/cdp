@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "cdp",
+      "runtimeExecutable": "C:\\Program Files\\PHP\\php.exe",
+      "runtimeArgs": ["-d", "extension=C:\\Program Files\\PHP\\ext\\php_openssl.dll", "-d", "extension=C:\\Program Files\\PHP\\ext\\php_curl.dll", "-S", "localhost:8000"],
+      "port": 8000
+    }
+  ]
+}

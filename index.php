@@ -828,9 +828,6 @@ if ($printParam === 'worker'){
 }
 
 $initialView = $personNameParam !== null ? 'calendar' : 'matrix';
-
-$personIdsForClient = $names;
-unset($personIdsForClient['']);
 ?>
 <!DOCTYPE html>
 <html lang="cs">
@@ -849,7 +846,6 @@ unset($personIdsForClient['']);
     window.SHIFT_DATA = <?= json_encode($model, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>;
     window.APP_CONFIG = <?= json_encode([
       'rangeLabel' => $rangeLabel,
-      'personIds' => $personIdsForClient,
       'initialView' => $initialView,
       'initialPerson' => $personNameParam,
     ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>;
