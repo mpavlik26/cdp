@@ -458,13 +458,20 @@ button { font-family: inherit; }
   padding: 18px 22px;
 }
 
+.detail-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
 .detail-panel__title {
   font-size: 13px;
   letter-spacing: .1em;
   text-transform: uppercase;
   color: #8A96A2;
   font-weight: 700;
-  margin-bottom: 14px;
 }
 
 .detail-placeholder {
