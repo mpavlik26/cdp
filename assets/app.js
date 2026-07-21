@@ -416,7 +416,7 @@
     );
   }
 
-  function renderDetailPanel(detail) {
+  function renderDetailPanel(detail, prevShift, nextShift) {
     let inner;
     if (detail) {
       inner = (
@@ -443,7 +443,15 @@
     } else {
       inner = '<div class="detail-placeholder">Klikněte na směnu v kalendáři výše a zobrazí se detail střídání.</div>';
     }
-    return '<div class="detail-panel"><div class="detail-panel__title">DETAIL STŘÍDÁNÍ</div>' + inner + '</div>';
+    const pager = detail
+      ? '<div class="pdetail-pager">' + renderPagerBtn('‹ Předchozí', prevShift) + renderPagerBtn('Další ›', nextShift) + '</div>'
+      : '';
+    return (
+      '<div class="detail-panel">'
+      + '<div class="detail-panel__head"><div class="detail-panel__title">DETAIL STŘÍDÁNÍ</div>' + pager + '</div>'
+      + inner
+      + '</div>'
+    );
   }
 
   function renderCompactPP(pp) {
@@ -482,7 +490,7 @@
     );
   }
 
-  function renderCompactPagerBtn(label, shift) {
+  function renderPagerBtn(label, shift) {
     return shift
       ? '<button type="button" class="pdetail-pager__btn" data-action="cell-toggle" data-id="' + shift.id + '">' + label + '</button>'
       : '<span class="pdetail-pager__btn pdetail-pager__btn--disabled">' + label + '</span>';
@@ -493,8 +501,8 @@
       '<div class="pdetail-nav">'
       + '<button type="button" class="pdetail-back" data-action="cell-toggle" data-id="' + sel.id + '">‹ Zpět na seznam směn</button>'
       + '<div class="pdetail-pager">'
-      + renderCompactPagerBtn('‹ Předchozí', prevShift)
-      + renderCompactPagerBtn('Další ›', nextShift)
+      + renderPagerBtn('‹ Předchozí', prevShift)
+      + renderPagerBtn('Další ›', nextShift)
       + '</div>'
       + '</div>'
       + '<div class="pdetail">'
@@ -552,6 +560,10 @@
     const detail = sel ? buildDetail(sel) : null;
     const isCompact = state.displayMode === 'compact';
 
+    const selIndex = sel ? shifts.findIndex((s) => s.id === sel.id) : -1;
+    const prevShift = selIndex > 0 ? shifts[selIndex - 1] : null;
+    const nextShift = (selIndex >= 0 && selIndex < shifts.length - 1) ? shifts[selIndex + 1] : null;
+
     const peopleOptions = DATA.people.map((n) => (
       '<option value="' + esc(n) + '"' + (n === person ? ' selected' : '') + '>' + esc(n) + '</option>'
     )).join('');
@@ -560,9 +572,6 @@
 
     if (isCompact) {
       if (sel) {
-        const selIndex = shifts.findIndex((s) => s.id === sel.id);
-        const prevShift = selIndex > 0 ? shifts[selIndex - 1] : null;
-        const nextShift = selIndex < shifts.length - 1 ? shifts[selIndex + 1] : null;
         bodyHtml = '<div class="card-body">' + renderCompactDetail(detail, sel, prevShift, nextShift) + '</div>';
       } else {
         const tableHtml = shifts.length
@@ -610,7 +619,7 @@
       + renderDisplayToggle()
       + '</div>'
       + bodyHtml
-      + (isCompact ? '' : renderDetailPanel(detail))
+      + (isCompact ? '' : renderDetailPanel(detail, prevShift, nextShift))
       + '</div>'
     );
   }
