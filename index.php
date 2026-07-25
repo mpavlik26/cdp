@@ -479,7 +479,6 @@ function buildDetailModel(array $model, int $gi, string $key): array{
 
   $me = $d[$key];
   $rm = $roleMeta[$key];
-  $timesStr = $key === 'n' ? ($me['startStr'] . ' → ' . $me['endStr']) : ($me['startStr'] . ' – ' . $me['endStr']);
 
   if ($key === 'n'){
     $takeoverPeople = [];
@@ -525,7 +524,11 @@ function buildDetailModel(array $model, int $gi, string $key): array{
 
   return [
     'dateStr' => $d['date'], 'weekday' => $d['weekday'],
-    'me' => ['label' => $rm['label'], 'color' => $rm['color'], 'bg' => $rm['bg'], 'timesStr' => $timesStr],
+    'me' => [
+      'label' => $rm['label'], 'color' => $rm['color'], 'bg' => $rm['bg'],
+      'startStr' => $me['startStr'], 'endStr' => $me['endStr'], 'startColor' => $me['startColor'], 'endColor' => $me['endColor'],
+      'sep' => $key === 'n' ? '→' : '–',
+    ],
     'takeover' => $takeover, 'alongside' => $alongside, 'handoff' => $handoff,
   ];
 }
@@ -696,7 +699,11 @@ function renderPrintDetail(array $detail, string $personName, string $personId, 
   $html .= '<div class="pdetail-me" style="border-left-color:' . $detail['me']['color'] . '; background:' . $detail['me']['bg'] . ';">';
   $html .= '<div class="pdetail-me__date">' . htmlspecialchars($detail['weekday']) . ' · ' . htmlspecialchars($detail['dateStr']) . '</div>';
   $html .= '<div class="pdetail-me__role" style="color:' . $detail['me']['color'] . ';">' . htmlspecialchars($detail['me']['label']) . '</div>';
-  $html .= '<div class="pdetail-me__times">' . htmlspecialchars($detail['me']['timesStr']) . '</div>';
+  $html .= '<div class="pdetail-me__times">'
+    . '<span style="color:' . $detail['me']['startColor'] . ';">' . htmlspecialchars($detail['me']['startStr']) . '</span>'
+    . ' ' . $detail['me']['sep'] . ' '
+    . '<span style="color:' . $detail['me']['endColor'] . ';">' . htmlspecialchars($detail['me']['endStr']) . '</span>'
+    . '</div>';
   $html .= '</div>';
 
   $html .= renderPrintDetailCard('↓ PŘEBÍRÁŠ', '#0E7C66', '#DCF2EB', $detail['takeover']);
@@ -782,6 +789,12 @@ $model = $monthShiftsList->buildDesignModel();
 $rangeLabel = ($monthShiftsList->datesBetween->from && $monthShiftsList->datesBetween->to)
   ? formatMonthRangeLabel($monthShiftsList->datesBetween->from, $monthShiftsList->datesBetween->to)
   : '';
+
+if (($_GET['api'] ?? null) === 'data'){
+  header('Content-Type: application/json; charset=utf-8');
+  echo json_encode($model, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
+  exit;
+}
 
 $printParam = $_GET['print'] ?? null;
 $personIdParam = $_GET['person'] ?? null;

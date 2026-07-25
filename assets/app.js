@@ -246,7 +246,11 @@
 
     return {
       dateStr: d.date, weekday: d.weekday,
-      me: { label: rm.label, color: rm.color, bg: rm.bg, timesStr: sel.timesStr },
+      me: {
+        label: rm.label, color: rm.color, bg: rm.bg,
+        startStr: me.startStr, endStr: me.endStr, startColor: me.startColor, endColor: me.endColor,
+        sep: sel.key === 'n' ? '→' : '–',
+      },
       takeover, alongside, handoff,
     };
   }
@@ -410,6 +414,14 @@
     return html;
   }
 
+  function renderColoredTimes(startStr, startColor, sep, endStr, endColor) {
+    return (
+      '<span style="color:' + startColor + ';">' + esc(startStr) + '</span>'
+      + ' ' + sep + ' '
+      + '<span style="color:' + endColor + ';">' + esc(endStr) + '</span>'
+    );
+  }
+
   function renderPPRow(pp) {
     return (
       '<div class="pp-row" style="border-left-color:' + pp.color + '; background:' + pp.bg + ';">'
@@ -458,9 +470,9 @@
         + '<div class="detail-me__date">' + esc(detail.weekday) + ' · ' + esc(detail.dateStr) + '</div>'
         + '<div style="display:flex; align-items:baseline; gap:10px; margin-top:3px; flex-wrap:wrap;">'
         + '<span class="detail-me__role" style="color:' + detail.me.color + ';">' + esc(detail.me.label) + '</span>'
-        + '<span class="detail-me__times">' + esc(detail.me.timesStr) + '</span>'
+        + '<span class="detail-me__times">' + renderColoredTimes(detail.me.startStr, detail.me.startColor, detail.me.sep, detail.me.endStr, detail.me.endColor) + '</span>'
         + '</div></div>'
-        + '<div class="detail-me__bottom">Tvoje směna. Níže vidíš, koho střídáš, s kým jsi ve službě a komu ji předáváš.</div>'
+        + '<div class="detail-me__bottom">Tvoje směna. Vedle vidíš, koho střídáš, s kým jsi ve službě a komu ji předáváš.</div>'
         + '</div>'
         + '<div class="detail-side">'
         + renderDetailCard('↓ PŘEBÍRÁŠ', '#0E7C66', '#DCF2EB', detail.takeover)
@@ -541,7 +553,7 @@
       + '<div class="pdetail-me" style="border-left-color:' + detail.me.color + '; background:' + detail.me.bg + ';">'
       + '<div class="pdetail-me__date">' + esc(detail.weekday) + ' · ' + esc(detail.dateStr) + '</div>'
       + '<div class="pdetail-me__role" style="color:' + detail.me.color + ';">' + esc(detail.me.label) + '</div>'
-      + '<div class="pdetail-me__times">' + esc(detail.me.timesStr) + '</div>'
+      + '<div class="pdetail-me__times">' + renderColoredTimes(detail.me.startStr, detail.me.startColor, detail.me.sep, detail.me.endStr, detail.me.endColor) + '</div>'
       + '</div>'
       + renderCompactDetailCard('↓ PŘEBÍRÁŠ', '#0E7C66', '#DCF2EB', detail.takeover)
       + (detail.alongside.show
@@ -849,6 +861,26 @@
     state.selId = (e.state && e.state.selId) || null;
     renderApp();
   });
+
+  const DATA_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+
+  function refreshData() {
+    fetch('index.php?api=data', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('bad status'))))
+      .then((freshData) => {
+        Object.assign(DATA, freshData);
+        if (state.person && DATA.people.indexOf(state.person) === -1) {
+          state.person = DATA.people[0] || null;
+          state.selId = null;
+        }
+        renderApp();
+      })
+      .catch(() => {
+        // silent — will retry on the next interval
+      });
+  }
+
+  setInterval(refreshData, DATA_REFRESH_INTERVAL_MS);
 
   renderApp();
 })();
