@@ -472,7 +472,7 @@
         + '<span class="detail-me__role" style="color:' + detail.me.color + ';">' + esc(detail.me.label) + '</span>'
         + '<span class="detail-me__times">' + renderColoredTimes(detail.me.startStr, detail.me.startColor, detail.me.sep, detail.me.endStr, detail.me.endColor) + '</span>'
         + '</div></div>'
-        + '<div class="detail-me__bottom">Tvoje směna. Níže vidíš, koho střídáš, s kým jsi ve službě a komu ji předáváš.</div>'
+        + '<div class="detail-me__bottom">Tvoje směna. Vedle vidíš, koho střídáš, s kým jsi ve službě a komu ji předáváš.</div>'
         + '</div>'
         + '<div class="detail-side">'
         + renderDetailCard('↓ PŘEBÍRÁŠ', '#0E7C66', '#DCF2EB', detail.takeover)
