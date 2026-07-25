@@ -850,5 +850,25 @@
     renderApp();
   });
 
+  const DATA_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+
+  function refreshData() {
+    fetch('index.php?api=data', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('bad status'))))
+      .then((freshData) => {
+        Object.assign(DATA, freshData);
+        if (state.person && DATA.people.indexOf(state.person) === -1) {
+          state.person = DATA.people[0] || null;
+          state.selId = null;
+        }
+        renderApp();
+      })
+      .catch(() => {
+        // silent — will retry on the next interval
+      });
+  }
+
+  setInterval(refreshData, DATA_REFRESH_INTERVAL_MS);
+
   renderApp();
 })();

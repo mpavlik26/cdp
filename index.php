@@ -783,6 +783,12 @@ $rangeLabel = ($monthShiftsList->datesBetween->from && $monthShiftsList->datesBe
   ? formatMonthRangeLabel($monthShiftsList->datesBetween->from, $monthShiftsList->datesBetween->to)
   : '';
 
+if (($_GET['api'] ?? null) === 'data'){
+  header('Content-Type: application/json; charset=utf-8');
+  echo json_encode($model, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
+  exit;
+}
+
 $printParam = $_GET['print'] ?? null;
 $personIdParam = $_GET['person'] ?? null;
 $personNameParam = null;
