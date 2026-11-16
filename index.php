@@ -521,11 +521,12 @@ function buildDetailModel(array $model, int $gi, string $key): array{
   $d = $days[$gi];
   $roleMeta = $model['roleMeta'];
 
-  $P = function(array $a, string $roleKey) use ($roleMeta): array{
+  $P = function(array $a, string $roleKey, bool $receiver = false) use ($roleMeta): array{
     return [
       'name' => $a['person'], 'role' => $roleMeta[$roleKey]['label'], 'color' => $roleMeta[$roleKey]['color'], 'bg' => $roleMeta[$roleKey]['bg'],
       'startStr' => $a['startStr'], 'endStr' => $a['endStr'], 'startColor' => $a['startColor'], 'endColor' => $a['endColor'],
       'sep' => $roleKey === 'n' ? '→' : '–',
+      'receiver' => $receiver,
     ];
   };
 
@@ -551,14 +552,28 @@ function buildDetailModel(array $model, int $gi, string $key): array{
     $alongside = ['show' => false, 'people' => []];
 
     $nd = $days[$gi + 1] ?? null;
-    $handoffPeople = [];
+    // Navazující denní: první příchozí nahoře; při shodě času je první ten na 524.
+    // Noční předává prvnímu příchozímu (pokud předávka vůbec proběhne, tj. postKind není 'no').
+    $firstKey = null;
     if ($nd !== null){
-      if ($nd['d'] !== null) $handoffPeople[] = $P($nd['d'], 'd');
-      if ($nd['k'] !== null) $handoffPeople[] = $P($nd['k'], 'k');
+      if ($nd['k'] !== null && ($nd['d'] === null || $nd['k']['s'] <= $nd['d']['s'])) $firstKey = 'k';
+      elseif ($nd['d'] !== null) $firstKey = 'd';
     }
-    $handoff = array_merge(['time' => $me['endStr'], 'when' => 'Ráno · další den', 'people' => $handoffPeople], $noNote);
-    if ($me['postKind'] === '514' && $nd !== null && $nd['d'] !== null){
-      $handoff = $withNote($handoff, 'move', 'Před příchodem ' . $nd['d']['person'] . ' v ' . $nd['d']['startStr'] . ' přesedni z 524 na post 514 — předávka proběhne tam z ruky do ruky. Odejít můžeš ' . $me['endStr'] . '.');
+    $handsOver = $firstKey !== null && $me['postKind'] !== 'no';
+    $handoffPeople = [];
+    if ($firstKey !== null){
+      $handoffPeople[] = $P($nd[$firstKey], $firstKey, $handsOver);
+      $otherKey = $firstKey === 'k' ? 'd' : 'k';
+      if ($nd[$otherKey] !== null) $handoffPeople[] = $P($nd[$otherKey], $otherKey, false);
+    }
+    $handoff = array_merge(['time' => $me['endStr'], 'when' => 'Ráno · další den', 'people' => $handoffPeople, 'ppv' => ''], $noNote);
+    if ($handsOver){
+      // PPV Cheb dostane opačný post, než na který předávám já.
+      $handoff['ppv'] = 'ráno můžeš na PPV do Chebu předat post ' . ($firstKey === 'd' ? '524' : '514');
+    }
+    if ($me['postKind'] === '514' && $firstKey === 'd'){
+      $first = $nd['d'];
+      $handoff = $withNote($handoff, 'move', 'Než v ' . $first['startStr'] . ' přijde ' . $first['person'] . ', přesedni z 524 na post 514 — předávka proběhne tam z ruky do ruky. Odejít můžeš, až ' . $first['person'] . ' přijde a směnu si předáte.');
     } elseif ($me['postKind'] === 'no'){
       $handoff = $withNote($handoff, 'warn', 'Odcházíš bez předávky — ranní denní služba nastupuje až po tvém odchodu.');
     }
@@ -701,8 +716,11 @@ function renderPrintWorker(array $model, string $personName, string $rangeLabel,
 
 
 function renderPrintPP(array $pp): string{
-  return '<div class="pdetail-pp" style="border-left-color:' . $pp['color'] . '; background:' . $pp['bg'] . ';">'
-    . '<div class="pdetail-pp__top"><span class="pdetail-pp__name">' . htmlspecialchars($pp['name']) . '</span>'
+  $recv = !empty($pp['receiver']);
+  return '<div class="pdetail-pp' . ($recv ? ' pdetail-pp--recv' : '') . '" style="border-left-color:' . $pp['color'] . '; background:' . $pp['bg'] . ';' . ($recv ? ' box-shadow:0 0 0 2px ' . $pp['color'] . ';' : '') . '">'
+    . '<div class="pdetail-pp__top"><span class="pdetail-pp__name">' . htmlspecialchars($pp['name'])
+    . ($recv ? '<span class="pp-recv" style="background:' . $pp['color'] . ';">přebírá od tebe</span>' : '')
+    . '</span>'
     . '<span class="pdetail-pp__role" style="color:' . $pp['color'] . ';">' . htmlspecialchars($pp['role']) . '</span></div>'
     . '<div class="pdetail-pp__times"><span style="color:' . $pp['startColor'] . ';">' . htmlspecialchars($pp['startStr']) . '</span>'
     . ' ' . $pp['sep'] . ' '
@@ -717,6 +735,13 @@ function renderPrintDetailCard(string $badgeLabel, string $badgeColor, string $b
   $html .= '<span class="pdetail-badge" style="color:' . $badgeColor . '; background:' . $badgeBg . ';">' . $badgeLabel . '</span>';
   $html .= '<span class="pdetail-when">' . htmlspecialchars($section['when']) . ' · ' . htmlspecialchars($section['time']) . '</span>';
   $html .= '</div>';
+
+  if (!empty($section['ppv'])){
+    $html .= '<div class="pdetail-note" style="background:#FBEAD0; border-color:#E9C58F; color:#9A5B00;">';
+    $html .= '<span class="pdetail-note__tag" style="color:#9A5B00; border-color:#E9C58F;">PPV</span>';
+    $html .= htmlspecialchars($section['ppv']);
+    $html .= '</div>';
+  }
 
   if ($section['hasNote']){
     $html .= '<div class="pdetail-note" style="background:' . $section['noteBg'] . '; border-color:' . $section['noteBorder'] . '; color:' . $section['noteFg'] . ';">';
@@ -813,6 +838,7 @@ function renderPrintPage(string $bodyHtml): void{
     .pdetail-pp:first-of-type { margin-top:0; }
     .pdetail-pp__top { display:flex; justify-content:space-between; gap:8px; font-size:13px; }
     .pdetail-pp__name { font-weight:700; }
+    .pp-recv { display:inline-block; margin-left:8px; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:#fff; vertical-align:middle; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
     .pdetail-pp__role { font-size:11px; font-weight:600; }
     .pdetail-pp__times { font-size:12px; color:#1B2530; margin-top:1px; }
     @media print {

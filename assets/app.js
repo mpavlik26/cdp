@@ -202,10 +202,11 @@
     const d = days[sel.gi];
     const roleMeta = DATA.roleMeta;
 
-    const P = (a, key) => ({
+    const P = (a, key, receiver) => ({
       name: a.person, role: roleMeta[key].label, color: roleMeta[key].color, bg: roleMeta[key].bg,
       startStr: a.startStr, endStr: a.endStr, startColor: a.startColor, endColor: a.endColor,
       sep: key === 'n' ? '→' : '–',
+      receiver: !!receiver,
     });
 
     const WARN = { noteBg: '#FDF0D5', noteFg: '#8A5A00', noteBorder: '#E7B85C', noteIcon: '', noteWarn: true, noteMove: false };
@@ -223,9 +224,22 @@
       }
       alongside = { show: false, people: [] };
       const nd = days[sel.gi + 1];
-      handoff = Object.assign({ time: me.endStr, when: 'Ráno · další den', people: nd ? [nd.d && P(nd.d, 'd'), nd.k && P(nd.k, 'k')].filter(Boolean) : [] }, noNote);
-      if (me.postKind === '514' && nd && nd.d) {
-        withNote(handoff, 'move', 'Před příchodem ' + nd.d.person + ' v ' + nd.d.startStr + ' přesedni z 524 na post 514 — předávka proběhne tam z ruky do ruky. Odejít můžeš ' + me.endStr + '.');
+      // Navazující denní: první příchozí nahoře; při shodě času je první ten na 524.
+      // Noční předává prvnímu příchozímu (pokud předávka vůbec proběhne, tj. postKind není 'no').
+      const firstKey = !nd ? null : (nd.k && (!nd.d || nd.k.s <= nd.d.s)) ? 'k' : (nd.d ? 'd' : null);
+      const handsOver = !!firstKey && me.postKind !== 'no';
+      const nextPeople = [];
+      if (firstKey) nextPeople.push(P(nd[firstKey], firstKey, handsOver));
+      const otherKey = firstKey === 'k' ? 'd' : 'k';
+      if (nd && firstKey && nd[otherKey]) nextPeople.push(P(nd[otherKey], otherKey, false));
+      handoff = Object.assign({ time: me.endStr, when: 'Ráno · další den', people: nextPeople, ppv: '' }, noNote);
+      if (handsOver) {
+        // PPV Cheb dostane opačný post, než na který předávám já.
+        handoff.ppv = 'ráno můžeš na PPV do Chebu předat post ' + (firstKey === 'd' ? '524' : '514');
+      }
+      if (me.postKind === '514' && firstKey === 'd') {
+        const first = nd.d;
+        withNote(handoff, 'move', 'Než v ' + first.startStr + ' přijde ' + first.person + ', přesedni z 524 na post 514 — předávka proběhne tam z ruky do ruky. Odejít můžeš, až ' + first.person + ' přijde a směnu si předáte.');
       } else if (me.postKind === 'no') {
         withNote(handoff, 'warn', 'Odcházíš bez předávky — ranní denní služba nastupuje až po tvém odchodu.');
       }
@@ -237,7 +251,7 @@
       }
       const ok = sel.key === 'd' ? 'k' : 'd';
       alongside = { show: true, people: d[ok] ? [P(d[ok], ok)] : [] };
-      handoff = Object.assign({ time: me.endStr, when: 'Večer', people: d.n ? [P(d.n, 'n')] : [] }, noNote);
+      handoff = Object.assign({ time: me.endStr, when: 'Večer', people: d.n ? [P(d.n, 'n')] : [], ppv: '' }, noNote);
       if (me.postKind === '514') {
         withNote(handoff, 'move', 'Až ve ' + d.n.startStr + ' dorazí ' + d.n.person + ' na noční, přesedni na sousední post 514 a dokonči tam směnu do ' + me.endStr + '.');
       } else if (me.postKind === 'no') {
@@ -427,10 +441,24 @@
     );
   }
 
+  const PPV_STYLE = { bg: '#FBEAD0', fg: '#9A5B00', border: '#E9C58F' };
+
+  function renderPpvNote(section) {
+    if (!section.ppv) return '';
+    return (
+      '<div class="detail-note" style="background:' + PPV_STYLE.bg + '; border-color:' + PPV_STYLE.border + ';">'
+      + '<span class="detail-note__icon"><span style="font-size:12px; font-weight:700; color:' + PPV_STYLE.fg + '; background:#fff; border:1px solid ' + PPV_STYLE.border + '; padding:1px 5px; border-radius:4px;">PPV</span></span>'
+      + '<span style="color:' + PPV_STYLE.fg + ';">' + esc(section.ppv) + '</span>'
+      + '</div>'
+    );
+  }
+
   function renderPPRow(pp) {
     return (
-      '<div class="pp-row" style="border-left-color:' + pp.color + '; background:' + pp.bg + ';">'
-      + '<div class="pp-row__top"><span class="pp-name">' + esc(pp.name) + '</span>'
+      '<div class="pp-row' + (pp.receiver ? ' pp-row--recv' : '') + '" style="border-left-color:' + pp.color + '; background:' + pp.bg + ';' + (pp.receiver ? ' box-shadow:0 0 0 2px ' + pp.color + ';' : '') + '">'
+      + '<div class="pp-row__top"><span class="pp-name">' + esc(pp.name)
+      + (pp.receiver ? '<span class="pp-recv" style="background:' + pp.color + ';">přebírá od tebe</span>' : '')
+      + '</span>'
       + '<span class="pp-role" style="color:' + pp.color + ';">' + esc(pp.role) + '</span></div>'
       + '<div class="pp-times"><span style="color:' + pp.startColor + ';">' + esc(pp.startStr) + '</span>'
       + '<span class="pp-sep">' + pp.sep + '</span>'
@@ -459,6 +487,7 @@
       + '<span class="detail-badge" style="color:' + badgeColor + '; background:' + badgeBg + ';">' + badgeLabel + '</span>'
       + '<span class="detail-when">' + esc(section.when) + ' · ' + esc(section.time) + '</span>'
       + '</div>'
+      + renderPpvNote(section)
       + renderNote(section)
       + section.people.map(renderPPRow).join('')
       + '</div>'
@@ -505,12 +534,24 @@
 
   function renderCompactPP(pp) {
     return (
-      '<div class="pdetail-pp" style="border-left-color:' + pp.color + '; background:' + pp.bg + ';">'
-      + '<div class="pdetail-pp__top"><span class="pdetail-pp__name">' + esc(pp.name) + '</span>'
+      '<div class="pdetail-pp' + (pp.receiver ? ' pdetail-pp--recv' : '') + '" style="border-left-color:' + pp.color + '; background:' + pp.bg + ';' + (pp.receiver ? ' box-shadow:0 0 0 2px ' + pp.color + ';' : '') + '">'
+      + '<div class="pdetail-pp__top"><span class="pdetail-pp__name">' + esc(pp.name)
+      + (pp.receiver ? '<span class="pp-recv" style="background:' + pp.color + ';">přebírá od tebe</span>' : '')
+      + '</span>'
       + '<span class="pdetail-pp__role" style="color:' + pp.color + ';">' + esc(pp.role) + '</span></div>'
       + '<div class="pdetail-pp__times"><span style="color:' + pp.startColor + ';">' + esc(pp.startStr) + '</span>'
       + ' ' + pp.sep + ' '
       + '<span style="color:' + pp.endColor + ';">' + esc(pp.endStr) + '</span></div>'
+      + '</div>'
+    );
+  }
+
+  function renderCompactPpvNote(section) {
+    if (!section.ppv) return '';
+    return (
+      '<div class="pdetail-note" style="background:' + PPV_STYLE.bg + '; border-color:' + PPV_STYLE.border + '; color:' + PPV_STYLE.fg + ';">'
+      + '<span class="pdetail-note__tag" style="color:' + PPV_STYLE.fg + '; border-color:' + PPV_STYLE.border + ';">PPV</span>'
+      + esc(section.ppv)
       + '</div>'
     );
   }
@@ -533,6 +574,7 @@
       + '<span class="pdetail-badge" style="color:' + badgeColor + '; background:' + badgeBg + ';">' + badgeLabel + '</span>'
       + '<span class="pdetail-when">' + esc(section.when) + ' · ' + esc(section.time) + '</span>'
       + '</div>'
+      + renderCompactPpvNote(section)
       + renderCompactNote(section)
       + (section.people.length ? section.people.map(renderCompactPP).join('') : '<span class="compact-empty">—</span>')
       + '</div>'
