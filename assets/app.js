@@ -127,11 +127,11 @@
         endPrevTime: hasEndPrev ? '→ ' + prev.a.endStr : '',
         endPrevColor: hasEndPrev ? prev.a.endColor : '#1B2530',
         startTime, startColor, endTime, endColor,
-        pre514: isDay && cur.a.preKind === '514',
         preNo: isDay && cur.a.preKind === 'no',
         post514: isDay && cur.a.postKind === '514',
         postNo: isDay && cur.a.postKind === 'no',
         nightPreNo: isNight && cur.a.preKind === 'no',
+        endPrev514: hasEndPrev && prev.a.postKind === '514',
         endPrevNo: hasEndPrev && prev.a.postKind === 'no',
         nBg: ACCENT.n.bg, nAccent: ACCENT.n.accent, baseBg, accentBar,
         outline: d.today ? TODAY_RING : 'none',
@@ -144,7 +144,7 @@
     baseBg: '#EAEEF2', outline: 'none', firstOfMonth: false, today: false,
     isDay: false, isNight: false, hasEndPrev: false, empty: false,
     num: '', monthShort: '',
-    pre514: false, preNo: false, post514: false, postNo: false, nightPreNo: false, endPrevNo: false,
+    preNo: false, post514: false, postNo: false, nightPreNo: false, endPrev514: false, endPrevNo: false,
   };
 
   function buildCalendar(person) {
@@ -222,17 +222,17 @@
       }
       alongside = { show: false, people: [] };
       const nd = days[sel.gi + 1];
-      handoff = Object.assign({ time: me.endStr, when: 'Ráno · další den', people: nd ? [P(nd.d, 'd'), P(nd.k, 'k')] : [] }, noNote);
-      if (me.postKind === 'no') {
-        withNote(handoff, 'warn', 'Odcházíš bez předávky — ranní denní služba na 524 nastupuje až po tvém odchodu. Mezičas kryje kolega na 514.');
+      handoff = Object.assign({ time: me.endStr, when: 'Ráno · další den', people: nd ? [nd.d && P(nd.d, 'd'), nd.k && P(nd.k, 'k')].filter(Boolean) : [] }, noNote);
+      if (me.postKind === '514' && nd && nd.d) {
+        withNote(handoff, 'move', 'Před příchodem ' + nd.d.person + ' v ' + nd.d.startStr + ' přesedni z 524 na post 514 — předávka proběhne tam z ruky do ruky. Odejít můžeš ' + me.endStr + '.');
+      } else if (me.postKind === 'no') {
+        withNote(handoff, 'warn', 'Odcházíš bez předávky — ranní denní služba nastupuje až po tvém odchodu.');
       }
     } else {
       const prev = sel.gi > 0 ? days[sel.gi - 1] : null;
       takeover = Object.assign({ time: me.startStr, when: 'Ráno', people: (prev && prev.n) ? [P(prev.n, 'n')] : [] }, noNote);
-      if (me.preKind === '514') {
-        withNote(takeover, 'move', 'Začni na sousedním postu 514. Jakmile v ' + d.d.startStr + ' dorazí ' + d.d.person + ' (514), přesedni na svůj post 524.');
-      } else if (me.preKind === 'no') {
-        withNote(takeover, 'warn', 'Nastupuješ bez převzetí — předchozí služba na 524 (noční) už skončila. Mezičas do tvého příchodu kryje kolega na 514.');
+      if (me.preKind === 'no') {
+        withNote(takeover, 'warn', 'Nastupuješ bez převzetí — noční služba už skončila.');
       }
       const ok = sel.key === 'd' ? 'k' : 'd';
       alongside = { show: true, people: d[ok] ? [P(d[ok], ok)] : [] };
@@ -299,11 +299,11 @@
           endPrevTime: hasEndPrev ? '→ ' + prevA.endStr : '',
           endPrevColor: hasEndPrev ? prevA.endColor : '#1B2530',
           startTime, startColor, endTime, endColor,
-          pre514: isDay && todayA.preKind === '514',
           preNo: isDay && todayA.preKind === 'no',
           post514: isDay && todayA.postKind === '514',
           postNo: isDay && todayA.postKind === 'no',
           nightPreNo: isNight && todayA.preKind === 'no',
+          endPrev514: hasEndPrev && prevA.postKind === '514',
           endPrevNo: hasEndPrev && prevA.postKind === 'no',
           nBg: ACCENT.n.bg, nAccent: ACCENT.n.accent, baseBg, accentBar,
           outerBorderLeft: day.firstOfMonth ? SEAM_ON : SEAM_OFF,
@@ -348,7 +348,7 @@
         '<span class="legend-item"><span class="legend-swatch" style="background:#FBE1E5; border-left-color:#E0224B;"></span>dlouhá 514</span>',
         '<span class="legend-item"><span class="legend-swatch" style="background:#ECEFF2; border-left-color:#8A96A2;"></span>krátká 524</span>',
         '<span class="legend-item"><span class="legend-swatch" style="background:#ECEFF2; border-left-color:#8A96A2;"></span>noční</span>',
-        '<span class="legend-item"><span class="tag-514">514</span> začátek/konec na 514</span>',
+        '<span class="legend-item"><span class="tag-514">514</span> konec na 514 / noční předává na 514</span>',
         '<span class="legend-item">' + noIconFn() + ' bez předávky / převzetí</span>',
         '<span><b>19:00 →</b> nástup večer (pokračuje do dalšího dne) &nbsp;·&nbsp; <b>→ 7:30</b> ranní odchod (z předchozí noční)</span>',
         '<span class="legend-item"><span style="color:#C43331; font-weight:700;">červená</span> delší &nbsp; <span style="color:#1B7F3B; font-weight:700;">zelená</span> kratší</span>',
@@ -357,8 +357,8 @@
         '<span class="legend-item"><span class="legend-swatch" style="background:#FBE1E5; border-left-color:#E0224B;"></span>dlouhá 514</span>',
         '<span class="legend-item"><span class="legend-swatch" style="background:#ECEFF2; border-left-color:#8A96A2;"></span>krátká 524</span>',
         '<span class="legend-item"><span class="legend-swatch" style="background:#ECEFF2; border-left-color:#8A96A2;"></span>noční (dole nástup <b>→</b>, nahoře ranní odchod <b>→</b>)</span>',
-        '<span class="legend-item"><span class="tag-514">514</span> začátek/konec na sousedním postu 514</span>',
-        '<span class="legend-item">' + noIconFn() + ' bez předávky / bez převzetí (mezičas kryje 514)</span>',
+        '<span class="legend-item"><span class="tag-514">514</span> konec na sousedním postu 514 · u ranního odchodu noční: přesednout z 524 na 514, předávka tam</span>',
+        '<span class="legend-item">' + noIconFn() + ' bez předávky / bez převzetí (noční odchází dřív, než přijde první denní)</span>',
       ];
     return '<div class="legend"><span style="font-weight:700; color:#1B2530;">Legenda:</span>' + items.join('') + '</div>';
   }
@@ -394,7 +394,7 @@
     if (cell.isDay) {
       html += '<div class="shift-block"><div class="shift-block__bar" style="background:' + cell.accentBar + ';"></div>'
         + '<div class="shift-block__col">'
-        + '<div class="shift-row">' + (cell.pre514 ? '<span class="tag-514">514</span>' : '') + (cell.preNo ? noIcon() : '')
+        + '<div class="shift-row">' + (cell.preNo ? noIcon() : '')
         + '<span style="color:' + cell.startColor + ';">' + esc(cell.startTime) + '</span></div>'
         + '<div class="shift-row"><span style="color:' + cell.endColor + ';">' + esc(cell.endTime) + '</span>'
         + (cell.post514 ? '<span class="tag-514">514</span>' : '') + (cell.postNo ? noIcon() : '') + '</div>'
@@ -402,7 +402,8 @@
     }
     if (cell.hasEndPrev) {
       html += '<div class="night-block night-block--top" style="background:' + cell.nBg + '; border-left-color:' + cell.nAccent + ';">'
-        + '<span style="color:' + cell.endPrevColor + ';">' + esc(cell.endPrevTime) + '</span>' + (cell.endPrevNo ? noIcon() : '') + '</div>';
+        + '<span style="color:' + cell.endPrevColor + ';">' + esc(cell.endPrevTime) + '</span>'
+        + (cell.endPrev514 ? '<span class="tag-514">514</span>' : '') + (cell.endPrevNo ? noIcon() : '') + '</div>';
     }
     if (cell.isNight) {
       html += '<div class="night-block night-block--bottom" style="background:' + cell.nBg + '; border-left-color:' + cell.nAccent + ';">'
@@ -568,14 +569,10 @@
 
   function buildShiftNotes(shift) {
     const notes = [];
-    if (shift.key === 'k') {
-      if (shift.preKind === '514') notes.push('Začátek na postu 514');
-      if (shift.postKind === '514') notes.push('Konec na postu 514');
-    }
-    if (shift.key === 'k' || shift.key === 'n') {
-      if (shift.preKind === 'no') notes.push('Nástup bez převzetí');
-      if (shift.postKind === 'no') notes.push('Odchod bez předávky');
-    }
+    if (shift.key === 'k' && shift.postKind === '514') notes.push('Konec na postu 514');
+    if (shift.key === 'n' && shift.postKind === '514') notes.push('Předávka na postu 514 (přesednout z 524)');
+    if (shift.preKind === 'no') notes.push('Nástup bez převzetí');
+    if (shift.postKind === 'no') notes.push('Odchod bez předávky');
     return notes;
   }
 
@@ -675,7 +672,7 @@
     if (cell.isDay) {
       html += '<div class="matrix-shift-block"><div class="matrix-shift-block__bar" style="background:' + cell.accentBar + ';"></div>'
         + '<div class="matrix-shift-block__col">'
-        + '<div class="matrix-shift-row">' + (cell.pre514 ? '<span class="tag-514">514</span>' : '') + (cell.preNo ? noIcon('icon-no--sm') : '')
+        + '<div class="matrix-shift-row">' + (cell.preNo ? noIcon('icon-no--sm') : '')
         + '<span style="color:' + cell.startColor + ';">' + esc(cell.startTime) + '</span></div>'
         + '<div class="matrix-shift-row"><span style="color:' + cell.endColor + ';">' + esc(cell.endTime) + '</span>'
         + (cell.post514 ? '<span class="tag-514">514</span>' : '') + (cell.postNo ? noIcon('icon-no--sm') : '') + '</div>'
@@ -683,7 +680,8 @@
     }
     if (cell.hasEndPrev) {
       html += '<div class="matrix-night-block matrix-night-block--top" style="background:' + cell.nBg + '; border-left-color:' + cell.nAccent + ';">'
-        + '<span style="color:' + cell.endPrevColor + ';">' + esc(cell.endPrevTime) + '</span>' + (cell.endPrevNo ? noIcon('icon-no--sm') : '') + '</div>';
+        + '<span style="color:' + cell.endPrevColor + ';">' + esc(cell.endPrevTime) + '</span>'
+        + (cell.endPrev514 ? '<span class="tag-514">514</span>' : '') + (cell.endPrevNo ? noIcon('icon-no--sm') : '') + '</div>';
     }
     if (cell.isNight) {
       html += '<div class="matrix-night-block matrix-night-block--bottom" style="background:' + cell.nBg + '; border-left-color:' + cell.nAccent + ';">'
@@ -700,18 +698,16 @@
       return '<span class="compact-empty">—</span>';
     }
 
-    const pre514 = roleKey === 'k' && entry.preKind === '514';
-    const preNo = (roleKey === 'k' || roleKey === 'n') && entry.preKind === 'no';
-    const post514 = roleKey === 'k' && entry.postKind === '514';
-    const postNo = (roleKey === 'k' || roleKey === 'n') && entry.postKind === 'no';
+    const preNo = entry.preKind === 'no';
+    const post514 = (roleKey === 'k' || roleKey === 'n') && entry.postKind === '514';
+    const postNo = entry.postKind === 'no';
 
     let html = '<button type="button" class="compact-table__name-btn" data-action="name-nav" data-person="'
       + esc(entry.person) + '">' + esc(entry.person) + '</button><br>'
       + '<span style="color:' + entry.startColor + ';">' + esc(entry.startStr) + '</span>–'
       + '<span style="color:' + entry.endColor + ';">' + esc(entry.endStr) + '</span>';
 
-    if (pre514) html += '<br><span class="tag-514">514 na začátku</span>';
-    if (post514) html += '<br><span class="tag-514">514 na konci</span>';
+    if (post514) html += '<br><span class="tag-514">' + (roleKey === 'n' ? 'předávka na 514' : '514 na konci') + '</span>';
     if (preNo) html += '<br><span class="tag-no">⊘ bez převzetí</span>';
     if (postNo) html += '<br><span class="tag-no">⊘ bez předávky</span>';
 
