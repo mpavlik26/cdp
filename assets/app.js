@@ -121,6 +121,7 @@
       return {
         blank: false, gi, num: d.num, monthShort: d.monthShort, firstOfMonth: d.firstOfMonth, showNum: true,
         clickable, selKey, id: clickable ? (refGi + selKey) : null,
+        prevId: hasEndPrev ? ((gi - 1) + 'n') : null,
         dowIdx: (d.dow + 6) % 7,
         today: d.today, weekend: d.weekend,
         empty, isDay, isNight, hasEndPrev,
@@ -377,7 +378,9 @@
       return '<div class="cal-day cal-day--blank"></div>';
     }
 
-    const selected = cell.clickable && cell.id === selId;
+    // Buňka může mít zároveň konec včerejší noční a vlastní dnešní směnu — konec noční je pak samostatně klikací.
+    const splitPrev = !!(cell.hasEndPrev && (cell.isDay || cell.isNight));
+    const selected = cell.clickable && (cell.id === selId || (splitPrev && cell.prevId === selId));
     const border = selected ? '2px solid #1B2530' : '1px solid #E9EDF1';
     const style = 'background:' + cell.baseBg + '; border:' + border + '; outline:' + cell.outline + '; outline-offset:2px;';
     const attrs = cell.clickable ? ' data-action="cell-toggle" data-id="' + cell.id + '"' : '';
@@ -401,7 +404,8 @@
         + '</div></div>';
     }
     if (cell.hasEndPrev) {
-      html += '<div class="night-block night-block--top" style="background:' + cell.nBg + '; border-left-color:' + cell.nAccent + ';">'
+      html += '<div class="night-block night-block--top" style="background:' + cell.nBg + '; border-left-color:' + cell.nAccent + ';"'
+        + (splitPrev ? ' data-action="cell-toggle" data-id="' + cell.prevId + '"' : '') + '>'
         + '<span style="color:' + cell.endPrevColor + ';">' + esc(cell.endPrevTime) + '</span>'
         + (cell.endPrev514 ? '<span class="tag-514">514</span>' : '') + (cell.endPrevNo ? noIcon() : '') + '</div>';
     }
