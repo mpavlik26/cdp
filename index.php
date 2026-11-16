@@ -16,6 +16,7 @@ $names = [
     "19" => "Libor",
     "18" => "Lucka",
     "13" => "Martin J.",
+    "20" => "Martin N.",
     "8" => "Martin P.",
     "4" => "Martina",
     "6" => "Míra",
@@ -26,7 +27,7 @@ $names = [
     "12" => "Veronika"
 ];
 
-const HANDOVER_BUFFER_MINUTES = 15; //normal handover overlap between 524 and night shifts; only a bigger gap counts as covering 514
+const HANDOVER_BUFFER_MINUTES = 15; //normal handover overlap: night shift may end this long after the first arriving day worker (and the evening 524 worker may overlap the night one)
 
 const SHIFT_GOOD = '#1B7F3B';
 const SHIFT_BAD = '#C43331';
@@ -275,6 +276,7 @@ function buildShiftEntry(MonthShiftsListRecord $record): array{
     'person' => $record->personName,
     's' => ((int)$record->in->format('H')) * 60 + (int)$record->in->format('i'),
     'e' => ((int)$record->out->format('H')) * 60 + (int)$record->out->format('i'),
+    'regularE' => ((int)$record->regularOut->format('H')) * 60 + (int)$record->regularOut->format('i'),
     'preKind' => '',
     'postKind' => '',
     'startStr' => getTimeString($record->in),
@@ -286,6 +288,28 @@ function buildShiftEntry(MonthShiftsListRecord $record): array{
     'badgeBg' => $hasBad ? '#FBE9E8' : '#E6F4EA',
     'badgeFg' => $hasBad ? SHIFT_BAD : SHIFT_GOOD,
   ];
+}
+
+
+/**
+ * Sets a new end of the shift (minutes of day) and recomputes everything derived from it
+ * (end string, end colour and the "longer/shorter shift" badge) against the regular end.
+ */
+function withShiftEnd(array $entry, int $endMinutes): array{
+  $entry['e'] = $endMinutes;
+  $entry['endStr'] = intdiv($endMinutes, 60) . ':' . sprintf('%02d', $endMinutes % 60);
+
+  $endFlag = $endMinutes === $entry['regularE'] ? 'ink' : ($endMinutes > $entry['regularE'] ? 'bad' : 'good');
+  $entry['endColor'] = $endFlag === 'bad' ? SHIFT_BAD : ($endFlag === 'good' ? SHIFT_GOOD : SHIFT_INK);
+
+  $hasBad = $entry['startColor'] === SHIFT_BAD || $endFlag === 'bad';
+  $hasGood = !$hasBad && ($entry['startColor'] === SHIFT_GOOD || $endFlag === 'good');
+  $entry['badgeShow'] = $hasBad || $hasGood;
+  $entry['badgeText'] = $hasBad ? 'DELŠÍ SMĚNA' : ($hasGood ? 'KRATŠÍ SMĚNA' : '');
+  $entry['badgeBg'] = $hasBad ? '#FBE9E8' : '#E6F4EA';
+  $entry['badgeFg'] = $hasBad ? SHIFT_BAD : SHIFT_GOOD;
+
+  return $entry;
 }
 
 
@@ -400,40 +424,74 @@ class MonthShiftsList{
 
     $count = count($days);
 
+    // Night shift of day i ends in the morning of day i + 1. The night dispatcher may leave
+    // HANDOVER_BUFFER_MINUTES after the first of the two arriving day dispatchers - a longer
+    // night shift in the sheet is cut down to that. The handover must happen at one post:
+    //  - the first arrival is strictly on 514 (d)  -> the night dispatcher (524) moves to 514 ('514'),
+    //  - the first arrival is on 524 (k) or both arrive at the same time -> handover on 524 ('').
+    //  - the night dispatcher leaves before anyone arrives -> no handover ('no').
+    for ($i = 0; $i < $count; $i++){
+      $n = $days[$i]['n'];
+      $next = $i < $count - 1 ? $days[$i + 1] : null;
+
+      if ($n === null || $next === null) continue;
+
+      $nextD = $next['d'];
+      $nextK = $next['k'];
+      $firstArrival = null;
+      if ($nextD !== null) $firstArrival = $nextD['s'];
+      if ($nextK !== null && ($firstArrival === null || $nextK['s'] < $firstArrival)) $firstArrival = $nextK['s'];
+
+      if ($firstArrival === null) continue;
+
+      if ($n['e'] > $firstArrival + HANDOVER_BUFFER_MINUTES){
+        $n = withShiftEnd($n, $firstArrival + HANDOVER_BUFFER_MINUTES);
+      }
+
+      if ($n['e'] < $firstArrival){
+        $n['postKind'] = 'no';
+      } elseif ($nextD !== null && ($nextK === null || $nextD['s'] < $nextK['s'])){
+        $n['postKind'] = '514';
+      } else {
+        $n['postKind'] = '';
+      }
+
+      $days[$i]['n'] = $n;
+    }
+
     for ($i = 0; $i < $count; $i++){
       $d = $days[$i]['d'];
       $k = $days[$i]['k'];
       $n = $days[$i]['n'];
       $prev = $i > 0 ? $days[$i - 1] : null;
-      $next = $i < $count - 1 ? $days[$i + 1] : null;
       $prevNightEnd = ($prev !== null && $prev['n'] !== null) ? $prev['n']['e'] : null;
 
-      if ($k !== null){
-        if ($prevNightEnd !== null && $prevNightEnd - $k['s'] > HANDOVER_BUFFER_MINUTES){
-          $k['preKind'] = '514';
-        } elseif ($prevNightEnd !== null && $k['s'] > $prevNightEnd){
-          $k['preKind'] = 'no';
+      // the first arriving day dispatcher(s) found nobody to take over from
+      $firstArrival = null;
+      if ($d !== null) $firstArrival = $d['s'];
+      if ($k !== null && ($firstArrival === null || $k['s'] < $firstArrival)) $firstArrival = $k['s'];
+
+      foreach (['d', 'k'] as $role){
+        $a = $$role;
+        if ($a === null) continue;
+
+        $a['preKind'] = ($prevNightEnd !== null && $a['s'] === $firstArrival && $prevNightEnd < $firstArrival) ? 'no' : '';
+
+        if ($role === 'k' && $n !== null && $a['e'] - $n['s'] > HANDOVER_BUFFER_MINUTES){
+          $a['postKind'] = '514';
+        } elseif ($role === 'k' && $n !== null && $a['e'] < $n['s']){
+          $a['postKind'] = 'no';
         } else {
-          $k['preKind'] = '';
+          $a['postKind'] = '';
         }
 
-        if ($n !== null && $k['e'] - $n['s'] > HANDOVER_BUFFER_MINUTES){
-          $k['postKind'] = '514';
-        } elseif ($n !== null && $k['e'] < $n['s']){
-          $k['postKind'] = 'no';
-        } else {
-          $k['postKind'] = '';
-        }
+        $days[$i][$role] = $a;
       }
 
       if ($n !== null){
         $n['preKind'] = ($k !== null && $n['s'] > $k['e']) ? 'no' : '';
-        $nextK = ($next !== null) ? $next['k'] : null;
-        $n['postKind'] = ($nextK !== null && $n['e'] < $nextK['s']) ? 'no' : '';
+        $days[$i]['n'] = $n;
       }
-
-      $days[$i]['k'] = $k;
-      $days[$i]['n'] = $n;
     }
 
     $peopleSet = [];
@@ -463,11 +521,12 @@ function buildDetailModel(array $model, int $gi, string $key): array{
   $d = $days[$gi];
   $roleMeta = $model['roleMeta'];
 
-  $P = function(array $a, string $roleKey) use ($roleMeta): array{
+  $P = function(array $a, string $roleKey, bool $receiver = false) use ($roleMeta): array{
     return [
       'name' => $a['person'], 'role' => $roleMeta[$roleKey]['label'], 'color' => $roleMeta[$roleKey]['color'], 'bg' => $roleMeta[$roleKey]['bg'],
       'startStr' => $a['startStr'], 'endStr' => $a['endStr'], 'startColor' => $a['startColor'], 'endColor' => $a['endColor'],
       'sep' => $roleKey === 'n' ? '→' : '–',
+      'receiver' => $receiver,
     ];
   };
 
@@ -493,23 +552,37 @@ function buildDetailModel(array $model, int $gi, string $key): array{
     $alongside = ['show' => false, 'people' => []];
 
     $nd = $days[$gi + 1] ?? null;
-    $handoffPeople = [];
+    // Navazující denní: první příchozí nahoře; při shodě času je první ten na 524.
+    // Noční předává prvnímu příchozímu (pokud předávka vůbec proběhne, tj. postKind není 'no').
+    $firstKey = null;
     if ($nd !== null){
-      if ($nd['d'] !== null) $handoffPeople[] = $P($nd['d'], 'd');
-      if ($nd['k'] !== null) $handoffPeople[] = $P($nd['k'], 'k');
+      if ($nd['k'] !== null && ($nd['d'] === null || $nd['k']['s'] <= $nd['d']['s'])) $firstKey = 'k';
+      elseif ($nd['d'] !== null) $firstKey = 'd';
     }
-    $handoff = array_merge(['time' => $me['endStr'], 'when' => 'Ráno · další den', 'people' => $handoffPeople], $noNote);
-    if ($me['postKind'] === 'no'){
-      $handoff = $withNote($handoff, 'warn', 'Odcházíš bez předávky — ranní denní služba na 524 nastupuje až po tvém odchodu. Mezičas kryje kolega na 514.');
+    $handsOver = $firstKey !== null && $me['postKind'] !== 'no';
+    $handoffPeople = [];
+    if ($firstKey !== null){
+      $handoffPeople[] = $P($nd[$firstKey], $firstKey, $handsOver);
+      $otherKey = $firstKey === 'k' ? 'd' : 'k';
+      if ($nd[$otherKey] !== null) $handoffPeople[] = $P($nd[$otherKey], $otherKey, false);
+    }
+    $handoff = array_merge(['time' => $me['endStr'], 'when' => 'Ráno · další den', 'people' => $handoffPeople, 'ppv' => ''], $noNote);
+    if ($handsOver){
+      // PPV Cheb dostane opačný post, než na který předávám já.
+      $handoff['ppv'] = 'ráno můžeš na PPV do Chebu předat post ' . ($firstKey === 'd' ? '524' : '514');
+    }
+    if ($me['postKind'] === '514' && $firstKey === 'd'){
+      $first = $nd['d'];
+      $handoff = $withNote($handoff, 'move', 'Než v ' . $first['startStr'] . ' přijde ' . $first['person'] . ', přesedni z 524 na post 514 — předávka proběhne tam z ruky do ruky. Odejít můžeš, až ' . $first['person'] . ' přijde a směnu si předáte.');
+    } elseif ($me['postKind'] === 'no'){
+      $handoff = $withNote($handoff, 'warn', 'Odcházíš bez předávky — ranní denní služba nastupuje až po tvém odchodu.');
     }
   } else {
     $prev = $gi > 0 ? ($days[$gi - 1] ?? null) : null;
     $takeoverPeople = ($prev !== null && $prev['n'] !== null) ? [$P($prev['n'], 'n')] : [];
     $takeover = array_merge(['time' => $me['startStr'], 'when' => 'Ráno', 'people' => $takeoverPeople], $noNote);
-    if ($me['preKind'] === '514'){
-      $takeover = $withNote($takeover, 'move', 'Začni na sousedním postu 514. Jakmile v ' . $d['d']['startStr'] . ' dorazí ' . $d['d']['person'] . ' (514), přesedni na svůj post 524.');
-    } elseif ($me['preKind'] === 'no'){
-      $takeover = $withNote($takeover, 'warn', 'Nastupuješ bez převzetí — předchozí služba na 524 (noční) už skončila. Mezičas do tvého příchodu kryje kolega na 514.');
+    if ($me['preKind'] === 'no'){
+      $takeover = $withNote($takeover, 'warn', 'Nastupuješ bez převzetí — noční služba už skončila.');
     }
 
     $ok = $key === 'd' ? 'k' : 'd';
@@ -559,22 +632,15 @@ function renderPrintCell(?array $entry, string $roleKey): string{
   $html .= '<span style="color:' . $entry['startColor'] . '">' . htmlspecialchars($entry['startStr']) . '</span>–';
   $html .= '<span style="color:' . $entry['endColor'] . '">' . htmlspecialchars($entry['endStr']) . '</span>';
 
-  if ($roleKey === 'k'){
-    if ($entry['preKind'] === '514'){
-      $html .= '<br><span class="tag-514">514 na začátku</span>';
-    }
-    if ($entry['postKind'] === '514'){
-      $html .= '<br><span class="tag-514">514 na konci</span>';
-    }
+  if (($roleKey === 'k' || $roleKey === 'n') && $entry['postKind'] === '514'){
+    $html .= '<br><span class="tag-514">' . ($roleKey === 'n' ? 'předávka na 514' : '514 na konci') . '</span>';
   }
 
-  if ($roleKey === 'k' || $roleKey === 'n'){
-    if ($entry['preKind'] === 'no'){
-      $html .= '<br><span class="tag-no">⊘ bez převzetí</span>';
-    }
-    if ($entry['postKind'] === 'no'){
-      $html .= '<br><span class="tag-no">⊘ bez předávky</span>';
-    }
+  if ($entry['preKind'] === 'no'){
+    $html .= '<br><span class="tag-no">⊘ bez převzetí</span>';
+  }
+  if ($entry['postKind'] === 'no'){
+    $html .= '<br><span class="tag-no">⊘ bez předávky</span>';
   }
 
   return $html;
@@ -601,7 +667,7 @@ function renderPrintComplete(array $model, string $rangeLabel): string{
     $html .= '</tbody></table>';
   }
 
-  $html .= '<p class="print-footnote"><b>Vysvětlivky:</b> „514 na začátku / na konci“ = pracovník z postu 524 tráví začátek/konec směny na sousedním postu 514. „⊘ bez převzetí / bez předávky“ = na postu 524 vzniká mezera, kterou pokrývá kolega na 514.</p>';
+  $html .= '<p class="print-footnote"><b>Vysvětlivky:</b> „514 na konci“ = pracovník z postu 524 tráví konec večerní směny na sousedním postu 514. „předávka na 514“ = noční dispečer se na konci směny přesedá z 524 na 514, kde předá směnu prvnímu příchozímu z denních (noční končí nejpozději 15 minut po jeho příchodu). „⊘ bez převzetí / bez předávky“ = k předání směny nedojde, protože druhá strana ještě / už není na místě.</p>';
 
   return $html;
 }
@@ -625,15 +691,11 @@ function renderPrintWorker(array $model, string $personName, string $rangeLabel,
 
       $notes = [];
 
-      if ($roleKey === 'k'){
-        if ($entry['preKind'] === '514') $notes[] = 'Začátek na postu 514';
-        if ($entry['postKind'] === '514') $notes[] = 'Konec na postu 514';
-      }
+      if ($roleKey === 'k' && $entry['postKind'] === '514') $notes[] = 'Konec na postu 514';
+      if ($roleKey === 'n' && $entry['postKind'] === '514') $notes[] = 'Předávka na postu 514 (přesednout z 524)';
 
-      if ($roleKey === 'k' || $roleKey === 'n'){
-        if ($entry['preKind'] === 'no') $notes[] = 'Nástup bez převzetí';
-        if ($entry['postKind'] === 'no') $notes[] = 'Odchod bez předávky';
-      }
+      if ($entry['preKind'] === 'no') $notes[] = 'Nástup bez převzetí';
+      if ($entry['postKind'] === 'no') $notes[] = 'Odchod bez předávky';
 
       $detailHref = 'index.php?print=worker&person=' . urlencode($personId) . '&shift=' . urlencode($gi . $roleKey);
       $rowClass = $day['weekend'] ? ' class="weekend row-link"' : ' class="row-link"';
@@ -654,8 +716,11 @@ function renderPrintWorker(array $model, string $personName, string $rangeLabel,
 
 
 function renderPrintPP(array $pp): string{
-  return '<div class="pdetail-pp" style="border-left-color:' . $pp['color'] . '; background:' . $pp['bg'] . ';">'
-    . '<div class="pdetail-pp__top"><span class="pdetail-pp__name">' . htmlspecialchars($pp['name']) . '</span>'
+  $recv = !empty($pp['receiver']);
+  return '<div class="pdetail-pp' . ($recv ? ' pdetail-pp--recv' : '') . '" style="border-left-color:' . $pp['color'] . '; background:' . $pp['bg'] . ';' . ($recv ? ' box-shadow:0 0 0 2px ' . $pp['color'] . ';' : '') . '">'
+    . '<div class="pdetail-pp__top"><span class="pdetail-pp__name">' . htmlspecialchars($pp['name'])
+    . ($recv ? '<span class="pp-recv" style="background:' . $pp['color'] . ';">přebírá od tebe</span>' : '')
+    . '</span>'
     . '<span class="pdetail-pp__role" style="color:' . $pp['color'] . ';">' . htmlspecialchars($pp['role']) . '</span></div>'
     . '<div class="pdetail-pp__times"><span style="color:' . $pp['startColor'] . ';">' . htmlspecialchars($pp['startStr']) . '</span>'
     . ' ' . $pp['sep'] . ' '
@@ -670,6 +735,13 @@ function renderPrintDetailCard(string $badgeLabel, string $badgeColor, string $b
   $html .= '<span class="pdetail-badge" style="color:' . $badgeColor . '; background:' . $badgeBg . ';">' . $badgeLabel . '</span>';
   $html .= '<span class="pdetail-when">' . htmlspecialchars($section['when']) . ' · ' . htmlspecialchars($section['time']) . '</span>';
   $html .= '</div>';
+
+  if (!empty($section['ppv'])){
+    $html .= '<div class="pdetail-note" style="background:#FBEAD0; border-color:#E9C58F; color:#9A5B00;">';
+    $html .= '<span class="pdetail-note__tag" style="color:#9A5B00; border-color:#E9C58F;">PPV</span>';
+    $html .= htmlspecialchars($section['ppv']);
+    $html .= '</div>';
+  }
 
   if ($section['hasNote']){
     $html .= '<div class="pdetail-note" style="background:' . $section['noteBg'] . '; border-color:' . $section['noteBorder'] . '; color:' . $section['noteFg'] . ';">';
@@ -766,6 +838,7 @@ function renderPrintPage(string $bodyHtml): void{
     .pdetail-pp:first-of-type { margin-top:0; }
     .pdetail-pp__top { display:flex; justify-content:space-between; gap:8px; font-size:13px; }
     .pdetail-pp__name { font-weight:700; }
+    .pp-recv { display:inline-block; margin-left:8px; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:#fff; vertical-align:middle; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
     .pdetail-pp__role { font-size:11px; font-weight:600; }
     .pdetail-pp__times { font-size:12px; color:#1B2530; margin-top:1px; }
     @media print {

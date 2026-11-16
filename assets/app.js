@@ -121,17 +121,18 @@
       return {
         blank: false, gi, num: d.num, monthShort: d.monthShort, firstOfMonth: d.firstOfMonth, showNum: true,
         clickable, selKey, id: clickable ? (refGi + selKey) : null,
+        prevId: hasEndPrev ? ((gi - 1) + 'n') : null,
         dowIdx: (d.dow + 6) % 7,
         today: d.today, weekend: d.weekend,
         empty, isDay, isNight, hasEndPrev,
         endPrevTime: hasEndPrev ? '→ ' + prev.a.endStr : '',
         endPrevColor: hasEndPrev ? prev.a.endColor : '#1B2530',
         startTime, startColor, endTime, endColor,
-        pre514: isDay && cur.a.preKind === '514',
         preNo: isDay && cur.a.preKind === 'no',
         post514: isDay && cur.a.postKind === '514',
         postNo: isDay && cur.a.postKind === 'no',
         nightPreNo: isNight && cur.a.preKind === 'no',
+        endPrev514: hasEndPrev && prev.a.postKind === '514',
         endPrevNo: hasEndPrev && prev.a.postKind === 'no',
         nBg: ACCENT.n.bg, nAccent: ACCENT.n.accent, baseBg, accentBar,
         outline: d.today ? TODAY_RING : 'none',
@@ -144,7 +145,7 @@
     baseBg: '#EAEEF2', outline: 'none', firstOfMonth: false, today: false,
     isDay: false, isNight: false, hasEndPrev: false, empty: false,
     num: '', monthShort: '',
-    pre514: false, preNo: false, post514: false, postNo: false, nightPreNo: false, endPrevNo: false,
+    preNo: false, post514: false, postNo: false, nightPreNo: false, endPrev514: false, endPrevNo: false,
   };
 
   function buildCalendar(person) {
@@ -201,10 +202,11 @@
     const d = days[sel.gi];
     const roleMeta = DATA.roleMeta;
 
-    const P = (a, key) => ({
+    const P = (a, key, receiver) => ({
       name: a.person, role: roleMeta[key].label, color: roleMeta[key].color, bg: roleMeta[key].bg,
       startStr: a.startStr, endStr: a.endStr, startColor: a.startColor, endColor: a.endColor,
       sep: key === 'n' ? '→' : '–',
+      receiver: !!receiver,
     });
 
     const WARN = { noteBg: '#FDF0D5', noteFg: '#8A5A00', noteBorder: '#E7B85C', noteIcon: '', noteWarn: true, noteMove: false };
@@ -222,21 +224,34 @@
       }
       alongside = { show: false, people: [] };
       const nd = days[sel.gi + 1];
-      handoff = Object.assign({ time: me.endStr, when: 'Ráno · další den', people: nd ? [P(nd.d, 'd'), P(nd.k, 'k')] : [] }, noNote);
-      if (me.postKind === 'no') {
-        withNote(handoff, 'warn', 'Odcházíš bez předávky — ranní denní služba na 524 nastupuje až po tvém odchodu. Mezičas kryje kolega na 514.');
+      // Navazující denní: první příchozí nahoře; při shodě času je první ten na 524.
+      // Noční předává prvnímu příchozímu (pokud předávka vůbec proběhne, tj. postKind není 'no').
+      const firstKey = !nd ? null : (nd.k && (!nd.d || nd.k.s <= nd.d.s)) ? 'k' : (nd.d ? 'd' : null);
+      const handsOver = !!firstKey && me.postKind !== 'no';
+      const nextPeople = [];
+      if (firstKey) nextPeople.push(P(nd[firstKey], firstKey, handsOver));
+      const otherKey = firstKey === 'k' ? 'd' : 'k';
+      if (nd && firstKey && nd[otherKey]) nextPeople.push(P(nd[otherKey], otherKey, false));
+      handoff = Object.assign({ time: me.endStr, when: 'Ráno · další den', people: nextPeople, ppv: '' }, noNote);
+      if (handsOver) {
+        // PPV Cheb dostane opačný post, než na který předávám já.
+        handoff.ppv = 'ráno můžeš na PPV do Chebu předat post ' + (firstKey === 'd' ? '524' : '514');
+      }
+      if (me.postKind === '514' && firstKey === 'd') {
+        const first = nd.d;
+        withNote(handoff, 'move', 'Než v ' + first.startStr + ' přijde ' + first.person + ', přesedni z 524 na post 514 — předávka proběhne tam z ruky do ruky. Odejít můžeš, až ' + first.person + ' přijde a směnu si předáte.');
+      } else if (me.postKind === 'no') {
+        withNote(handoff, 'warn', 'Odcházíš bez předávky — ranní denní služba nastupuje až po tvém odchodu.');
       }
     } else {
       const prev = sel.gi > 0 ? days[sel.gi - 1] : null;
       takeover = Object.assign({ time: me.startStr, when: 'Ráno', people: (prev && prev.n) ? [P(prev.n, 'n')] : [] }, noNote);
-      if (me.preKind === '514') {
-        withNote(takeover, 'move', 'Začni na sousedním postu 514. Jakmile v ' + d.d.startStr + ' dorazí ' + d.d.person + ' (514), přesedni na svůj post 524.');
-      } else if (me.preKind === 'no') {
-        withNote(takeover, 'warn', 'Nastupuješ bez převzetí — předchozí služba na 524 (noční) už skončila. Mezičas do tvého příchodu kryje kolega na 514.');
+      if (me.preKind === 'no') {
+        withNote(takeover, 'warn', 'Nastupuješ bez převzetí — noční služba už skončila.');
       }
       const ok = sel.key === 'd' ? 'k' : 'd';
       alongside = { show: true, people: d[ok] ? [P(d[ok], ok)] : [] };
-      handoff = Object.assign({ time: me.endStr, when: 'Večer', people: d.n ? [P(d.n, 'n')] : [] }, noNote);
+      handoff = Object.assign({ time: me.endStr, when: 'Večer', people: d.n ? [P(d.n, 'n')] : [], ppv: '' }, noNote);
       if (me.postKind === '514') {
         withNote(handoff, 'move', 'Až ve ' + d.n.startStr + ' dorazí ' + d.n.person + ' na noční, přesedni na sousední post 514 a dokonči tam směnu do ' + me.endStr + '.');
       } else if (me.postKind === 'no') {
@@ -299,11 +314,11 @@
           endPrevTime: hasEndPrev ? '→ ' + prevA.endStr : '',
           endPrevColor: hasEndPrev ? prevA.endColor : '#1B2530',
           startTime, startColor, endTime, endColor,
-          pre514: isDay && todayA.preKind === '514',
           preNo: isDay && todayA.preKind === 'no',
           post514: isDay && todayA.postKind === '514',
           postNo: isDay && todayA.postKind === 'no',
           nightPreNo: isNight && todayA.preKind === 'no',
+          endPrev514: hasEndPrev && prevA.postKind === '514',
           endPrevNo: hasEndPrev && prevA.postKind === 'no',
           nBg: ACCENT.n.bg, nAccent: ACCENT.n.accent, baseBg, accentBar,
           outerBorderLeft: day.firstOfMonth ? SEAM_ON : SEAM_OFF,
@@ -348,7 +363,7 @@
         '<span class="legend-item"><span class="legend-swatch" style="background:#FBE1E5; border-left-color:#E0224B;"></span>dlouhá 514</span>',
         '<span class="legend-item"><span class="legend-swatch" style="background:#ECEFF2; border-left-color:#8A96A2;"></span>krátká 524</span>',
         '<span class="legend-item"><span class="legend-swatch" style="background:#ECEFF2; border-left-color:#8A96A2;"></span>noční</span>',
-        '<span class="legend-item"><span class="tag-514">514</span> začátek/konec na 514</span>',
+        '<span class="legend-item"><span class="tag-514">514</span> konec na 514 / noční předává na 514</span>',
         '<span class="legend-item">' + noIconFn() + ' bez předávky / převzetí</span>',
         '<span><b>19:00 →</b> nástup večer (pokračuje do dalšího dne) &nbsp;·&nbsp; <b>→ 7:30</b> ranní odchod (z předchozí noční)</span>',
         '<span class="legend-item"><span style="color:#C43331; font-weight:700;">červená</span> delší &nbsp; <span style="color:#1B7F3B; font-weight:700;">zelená</span> kratší</span>',
@@ -357,8 +372,8 @@
         '<span class="legend-item"><span class="legend-swatch" style="background:#FBE1E5; border-left-color:#E0224B;"></span>dlouhá 514</span>',
         '<span class="legend-item"><span class="legend-swatch" style="background:#ECEFF2; border-left-color:#8A96A2;"></span>krátká 524</span>',
         '<span class="legend-item"><span class="legend-swatch" style="background:#ECEFF2; border-left-color:#8A96A2;"></span>noční (dole nástup <b>→</b>, nahoře ranní odchod <b>→</b>)</span>',
-        '<span class="legend-item"><span class="tag-514">514</span> začátek/konec na sousedním postu 514</span>',
-        '<span class="legend-item">' + noIconFn() + ' bez předávky / bez převzetí (mezičas kryje 514)</span>',
+        '<span class="legend-item"><span class="tag-514">514</span> konec na sousedním postu 514 · u ranního odchodu noční: přesednout z 524 na 514, předávka tam</span>',
+        '<span class="legend-item">' + noIconFn() + ' bez předávky / bez převzetí (noční odchází dřív, než přijde první denní)</span>',
       ];
     return '<div class="legend"><span style="font-weight:700; color:#1B2530;">Legenda:</span>' + items.join('') + '</div>';
   }
@@ -377,7 +392,9 @@
       return '<div class="cal-day cal-day--blank"></div>';
     }
 
-    const selected = cell.clickable && cell.id === selId;
+    // Buňka může mít zároveň konec včerejší noční a vlastní dnešní směnu — konec noční je pak samostatně klikací.
+    const splitPrev = !!(cell.hasEndPrev && (cell.isDay || cell.isNight));
+    const selected = cell.clickable && (cell.id === selId || (splitPrev && cell.prevId === selId));
     const border = selected ? '2px solid #1B2530' : '1px solid #E9EDF1';
     const style = 'background:' + cell.baseBg + '; border:' + border + '; outline:' + cell.outline + '; outline-offset:2px;';
     const attrs = cell.clickable ? ' data-action="cell-toggle" data-id="' + cell.id + '"' : '';
@@ -394,15 +411,17 @@
     if (cell.isDay) {
       html += '<div class="shift-block"><div class="shift-block__bar" style="background:' + cell.accentBar + ';"></div>'
         + '<div class="shift-block__col">'
-        + '<div class="shift-row">' + (cell.pre514 ? '<span class="tag-514">514</span>' : '') + (cell.preNo ? noIcon() : '')
+        + '<div class="shift-row">' + (cell.preNo ? noIcon() : '')
         + '<span style="color:' + cell.startColor + ';">' + esc(cell.startTime) + '</span></div>'
         + '<div class="shift-row"><span style="color:' + cell.endColor + ';">' + esc(cell.endTime) + '</span>'
         + (cell.post514 ? '<span class="tag-514">514</span>' : '') + (cell.postNo ? noIcon() : '') + '</div>'
         + '</div></div>';
     }
     if (cell.hasEndPrev) {
-      html += '<div class="night-block night-block--top" style="background:' + cell.nBg + '; border-left-color:' + cell.nAccent + ';">'
-        + '<span style="color:' + cell.endPrevColor + ';">' + esc(cell.endPrevTime) + '</span>' + (cell.endPrevNo ? noIcon() : '') + '</div>';
+      html += '<div class="night-block night-block--top" style="background:' + cell.nBg + '; border-left-color:' + cell.nAccent + ';"'
+        + (splitPrev ? ' data-action="cell-toggle" data-id="' + cell.prevId + '"' : '') + '>'
+        + '<span style="color:' + cell.endPrevColor + ';">' + esc(cell.endPrevTime) + '</span>'
+        + (cell.endPrev514 ? '<span class="tag-514">514</span>' : '') + (cell.endPrevNo ? noIcon() : '') + '</div>';
     }
     if (cell.isNight) {
       html += '<div class="night-block night-block--bottom" style="background:' + cell.nBg + '; border-left-color:' + cell.nAccent + ';">'
@@ -422,10 +441,24 @@
     );
   }
 
+  const PPV_STYLE = { bg: '#FBEAD0', fg: '#9A5B00', border: '#E9C58F' };
+
+  function renderPpvNote(section) {
+    if (!section.ppv) return '';
+    return (
+      '<div class="detail-note" style="background:' + PPV_STYLE.bg + '; border-color:' + PPV_STYLE.border + ';">'
+      + '<span class="detail-note__icon"><span style="font-size:12px; font-weight:700; color:' + PPV_STYLE.fg + '; background:#fff; border:1px solid ' + PPV_STYLE.border + '; padding:1px 5px; border-radius:4px;">PPV</span></span>'
+      + '<span style="color:' + PPV_STYLE.fg + ';">' + esc(section.ppv) + '</span>'
+      + '</div>'
+    );
+  }
+
   function renderPPRow(pp) {
     return (
-      '<div class="pp-row" style="border-left-color:' + pp.color + '; background:' + pp.bg + ';">'
-      + '<div class="pp-row__top"><span class="pp-name">' + esc(pp.name) + '</span>'
+      '<div class="pp-row' + (pp.receiver ? ' pp-row--recv' : '') + '" style="border-left-color:' + pp.color + '; background:' + pp.bg + ';' + (pp.receiver ? ' box-shadow:0 0 0 2px ' + pp.color + ';' : '') + '">'
+      + '<div class="pp-row__top"><span class="pp-name">' + esc(pp.name)
+      + (pp.receiver ? '<span class="pp-recv" style="background:' + pp.color + ';">přebírá od tebe</span>' : '')
+      + '</span>'
       + '<span class="pp-role" style="color:' + pp.color + ';">' + esc(pp.role) + '</span></div>'
       + '<div class="pp-times"><span style="color:' + pp.startColor + ';">' + esc(pp.startStr) + '</span>'
       + '<span class="pp-sep">' + pp.sep + '</span>'
@@ -454,6 +487,7 @@
       + '<span class="detail-badge" style="color:' + badgeColor + '; background:' + badgeBg + ';">' + badgeLabel + '</span>'
       + '<span class="detail-when">' + esc(section.when) + ' · ' + esc(section.time) + '</span>'
       + '</div>'
+      + renderPpvNote(section)
       + renderNote(section)
       + section.people.map(renderPPRow).join('')
       + '</div>'
@@ -500,12 +534,24 @@
 
   function renderCompactPP(pp) {
     return (
-      '<div class="pdetail-pp" style="border-left-color:' + pp.color + '; background:' + pp.bg + ';">'
-      + '<div class="pdetail-pp__top"><span class="pdetail-pp__name">' + esc(pp.name) + '</span>'
+      '<div class="pdetail-pp' + (pp.receiver ? ' pdetail-pp--recv' : '') + '" style="border-left-color:' + pp.color + '; background:' + pp.bg + ';' + (pp.receiver ? ' box-shadow:0 0 0 2px ' + pp.color + ';' : '') + '">'
+      + '<div class="pdetail-pp__top"><span class="pdetail-pp__name">' + esc(pp.name)
+      + (pp.receiver ? '<span class="pp-recv" style="background:' + pp.color + ';">přebírá od tebe</span>' : '')
+      + '</span>'
       + '<span class="pdetail-pp__role" style="color:' + pp.color + ';">' + esc(pp.role) + '</span></div>'
       + '<div class="pdetail-pp__times"><span style="color:' + pp.startColor + ';">' + esc(pp.startStr) + '</span>'
       + ' ' + pp.sep + ' '
       + '<span style="color:' + pp.endColor + ';">' + esc(pp.endStr) + '</span></div>'
+      + '</div>'
+    );
+  }
+
+  function renderCompactPpvNote(section) {
+    if (!section.ppv) return '';
+    return (
+      '<div class="pdetail-note" style="background:' + PPV_STYLE.bg + '; border-color:' + PPV_STYLE.border + '; color:' + PPV_STYLE.fg + ';">'
+      + '<span class="pdetail-note__tag" style="color:' + PPV_STYLE.fg + '; border-color:' + PPV_STYLE.border + ';">PPV</span>'
+      + esc(section.ppv)
       + '</div>'
     );
   }
@@ -528,6 +574,7 @@
       + '<span class="pdetail-badge" style="color:' + badgeColor + '; background:' + badgeBg + ';">' + badgeLabel + '</span>'
       + '<span class="pdetail-when">' + esc(section.when) + ' · ' + esc(section.time) + '</span>'
       + '</div>'
+      + renderCompactPpvNote(section)
       + renderCompactNote(section)
       + (section.people.length ? section.people.map(renderCompactPP).join('') : '<span class="compact-empty">—</span>')
       + '</div>'
@@ -568,14 +615,10 @@
 
   function buildShiftNotes(shift) {
     const notes = [];
-    if (shift.key === 'k') {
-      if (shift.preKind === '514') notes.push('Začátek na postu 514');
-      if (shift.postKind === '514') notes.push('Konec na postu 514');
-    }
-    if (shift.key === 'k' || shift.key === 'n') {
-      if (shift.preKind === 'no') notes.push('Nástup bez převzetí');
-      if (shift.postKind === 'no') notes.push('Odchod bez předávky');
-    }
+    if (shift.key === 'k' && shift.postKind === '514') notes.push('Konec na postu 514');
+    if (shift.key === 'n' && shift.postKind === '514') notes.push('Předávka na postu 514 (přesednout z 524)');
+    if (shift.preKind === 'no') notes.push('Nástup bez převzetí');
+    if (shift.postKind === 'no') notes.push('Odchod bez předávky');
     return notes;
   }
 
@@ -675,7 +718,7 @@
     if (cell.isDay) {
       html += '<div class="matrix-shift-block"><div class="matrix-shift-block__bar" style="background:' + cell.accentBar + ';"></div>'
         + '<div class="matrix-shift-block__col">'
-        + '<div class="matrix-shift-row">' + (cell.pre514 ? '<span class="tag-514">514</span>' : '') + (cell.preNo ? noIcon('icon-no--sm') : '')
+        + '<div class="matrix-shift-row">' + (cell.preNo ? noIcon('icon-no--sm') : '')
         + '<span style="color:' + cell.startColor + ';">' + esc(cell.startTime) + '</span></div>'
         + '<div class="matrix-shift-row"><span style="color:' + cell.endColor + ';">' + esc(cell.endTime) + '</span>'
         + (cell.post514 ? '<span class="tag-514">514</span>' : '') + (cell.postNo ? noIcon('icon-no--sm') : '') + '</div>'
@@ -683,7 +726,8 @@
     }
     if (cell.hasEndPrev) {
       html += '<div class="matrix-night-block matrix-night-block--top" style="background:' + cell.nBg + '; border-left-color:' + cell.nAccent + ';">'
-        + '<span style="color:' + cell.endPrevColor + ';">' + esc(cell.endPrevTime) + '</span>' + (cell.endPrevNo ? noIcon('icon-no--sm') : '') + '</div>';
+        + '<span style="color:' + cell.endPrevColor + ';">' + esc(cell.endPrevTime) + '</span>'
+        + (cell.endPrev514 ? '<span class="tag-514">514</span>' : '') + (cell.endPrevNo ? noIcon('icon-no--sm') : '') + '</div>';
     }
     if (cell.isNight) {
       html += '<div class="matrix-night-block matrix-night-block--bottom" style="background:' + cell.nBg + '; border-left-color:' + cell.nAccent + ';">'
@@ -700,18 +744,16 @@
       return '<span class="compact-empty">—</span>';
     }
 
-    const pre514 = roleKey === 'k' && entry.preKind === '514';
-    const preNo = (roleKey === 'k' || roleKey === 'n') && entry.preKind === 'no';
-    const post514 = roleKey === 'k' && entry.postKind === '514';
-    const postNo = (roleKey === 'k' || roleKey === 'n') && entry.postKind === 'no';
+    const preNo = entry.preKind === 'no';
+    const post514 = (roleKey === 'k' || roleKey === 'n') && entry.postKind === '514';
+    const postNo = entry.postKind === 'no';
 
     let html = '<button type="button" class="compact-table__name-btn" data-action="name-nav" data-person="'
       + esc(entry.person) + '">' + esc(entry.person) + '</button><br>'
       + '<span style="color:' + entry.startColor + ';">' + esc(entry.startStr) + '</span>–'
       + '<span style="color:' + entry.endColor + ';">' + esc(entry.endStr) + '</span>';
 
-    if (pre514) html += '<br><span class="tag-514">514 na začátku</span>';
-    if (post514) html += '<br><span class="tag-514">514 na konci</span>';
+    if (post514) html += '<br><span class="tag-514">' + (roleKey === 'n' ? 'předávka na 514' : '514 na konci') + '</span>';
     if (preNo) html += '<br><span class="tag-no">⊘ bez převzetí</span>';
     if (postNo) html += '<br><span class="tag-no">⊘ bez předávky</span>';
 
